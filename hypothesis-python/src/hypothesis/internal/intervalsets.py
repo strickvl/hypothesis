@@ -13,8 +13,7 @@ class IntervalSet:
     def __init__(self, intervals):
         self.intervals = tuple(intervals)
         self.offsets = [0]
-        for u, v in self.intervals:
-            self.offsets.append(self.offsets[-1] + v - u + 1)
+        self.offsets.extend(self.offsets[-1] + v - u + 1 for u, v in self.intervals)
         self.size = self.offsets.pop()
 
     def __len__(self):

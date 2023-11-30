@@ -118,8 +118,10 @@ class DFA:
                 if i + k < len(string):
                     c = string[i + k]
                     next_by_state[self.transition(state, c)].append(i)
-            for next_state, next_indices in next_by_state.items():
-                stack.append((k + 1, next_state, next_indices))
+            stack.extend(
+                (k + 1, next_state, next_indices)
+                for next_state, next_indices in next_by_state.items()
+            )
         return results
 
     def max_length(self, i):

@@ -117,7 +117,7 @@ def test_dictionaries_of_fixed_length(n):
     )
 
     if not n:
-        assert x == set()
+        assert not x
     else:
         assert x == set(range(min(x), min(x) + n))
 

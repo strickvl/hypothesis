@@ -78,11 +78,7 @@ def integer_range(data, lower, upper, center=None):
     else:
         above = not boolean(data)
 
-    if above:
-        gap = upper - center
-    else:
-        gap = center - lower
-
+    gap = upper - center if above else center - lower
     assert gap > 0
 
     bits = gap.bit_length()
@@ -100,11 +96,7 @@ def integer_range(data, lower, upper, center=None):
         probe = data.draw_bits(bits)
         data.stop_example(discard=probe > gap)
 
-    if above:
-        result = center + probe
-    else:
-        result = center - probe
-
+    result = center + probe if above else center - probe
     assert lower <= result <= upper
     return int(result)
 
@@ -132,9 +124,7 @@ def check_sample(values, strategy_name):
             "handling - and note that when simplifying an example, "
             "Hypothesis treats earlier values as simpler."
         )
-    if isinstance(values, range):
-        return values
-    return tuple(values)
+    return values if isinstance(values, range) else tuple(values)
 
 
 def choice(data, values):
@@ -163,15 +153,7 @@ def biased_coin(data, p, *, forced=None):
     # for it to be. This is because it is used in a lot of places and it's
     # important for it to shrink well, so it's worth the engineering effort.
 
-    if p <= 0 or p >= 1:
-        bits = 1
-    else:
-        # When there is a meaningful draw, in order to shrink well we will
-        # set things up so that 0 and 1 always correspond to False and True
-        # respectively. This means we want enough bits available that in a
-        # draw we will always have at least one truthy value and one falsey
-        # value.
-        bits = math.ceil(-math.log(min(p, 1 - p), 2))
+    bits = 1 if p <= 0 or p >= 1 else math.ceil(-math.log(min(p, 1 - p), 2))
     # In order to avoid stupidly large draws where the probability is
     # effectively zero or one, we treat probabilities of under 2^-64 to be
     # effectively zero.
@@ -214,11 +196,7 @@ def biased_coin(data, p, *, forced=None):
             truthy = floor(size * p)
             remainder = size * p - truthy
 
-            if falsey + truthy == size:
-                partial = False
-            else:
-                partial = True
-
+            partial = falsey + truthy != size
             if forced is None:
                 # We want to get to the point where True is represented by
                 # 1 and False is represented by 0 as quickly as possible, so
@@ -359,10 +337,7 @@ class Sampler:
         base, alternate, alternate_chance = self.table[i]
         use_alternate = biased_coin(data, alternate_chance)
         data.stop_example()
-        if use_alternate:
-            return alternate
-        else:
-            return base
+        return alternate if use_alternate else base
 
 
 INT_SIZES = (8, 16, 32, 64, 128)

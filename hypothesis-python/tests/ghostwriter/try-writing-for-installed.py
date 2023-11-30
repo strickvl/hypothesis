@@ -41,7 +41,7 @@ def getmodules():
                     .replace(os.sep, ".")
                     .replace("site-packages.", "")
                 )
-                if not any(bad in modname for bad in skip):
+                if all(bad not in modname for bad in skip):
                     yield modname
 
 

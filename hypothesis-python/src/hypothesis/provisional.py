@@ -112,7 +112,7 @@ class DomainNameStrategy(st.SearchStrategy):
             if len(domain) + len(sub_domain) >= self.max_length:
                 data.stop_example(discard=True)
                 break
-            domain = sub_domain + "." + domain
+            domain = f"{sub_domain}.{domain}"
         return domain
 
 

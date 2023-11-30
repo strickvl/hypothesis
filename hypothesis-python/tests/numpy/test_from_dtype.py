@@ -163,14 +163,14 @@ def test_all_inferred_scalar_strategies_roundtrip(data, dtype):
 @given(data=st.data())
 def test_from_dtype_works_without_time_unit(data, dtype_str):
     arr = data.draw(nps.from_dtype(np.dtype(dtype_str)))
-    assert (dtype_str + "[") in arr.dtype.str
+    assert f"{dtype_str}[" in arr.dtype.str
 
 
 @pytest.mark.parametrize("dtype_str", ["m8", "M8"])
 @given(data=st.data())
 def test_arrays_selects_consistent_time_unit(data, dtype_str):
     arr = data.draw(nps.arrays(dtype_str, 10))
-    assert (dtype_str + "[") in arr.dtype.str
+    assert f"{dtype_str}[" in arr.dtype.str
 
 
 def test_arrays_gives_useful_error_on_inconsistent_time_unit():

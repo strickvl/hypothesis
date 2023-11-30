@@ -65,7 +65,9 @@ def test_namespaced_strategies_repr(xp, xps, name, valid_args):
     """Namespaced strategies have good repr."""
     func = getattr(xps, name)
     strat = func(*valid_args)
-    assert repr(strat).startswith(name + "("), f"{name} not in strat repr {strat!r}"
+    assert repr(strat).startswith(
+        f"{name}("
+    ), f"{name} not in strat repr {strat!r}"
     assert len(repr(strat)) < 100, "strat repr looks too long"
     assert xp.__name__ not in repr(strat), f"{xp.__name__} in strat repr"
 

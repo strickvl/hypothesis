@@ -238,18 +238,18 @@ def lists(
     check_valid_sizes(min_size, max_size)
     check_strategy(elements, "elements")
     if unique:
-        if unique_by is not None:
+        if unique_by is None:
+            unique_by = identity
+
+        else:
             raise InvalidArgument(
                 "cannot specify both unique and unique_by "
                 "(you probably only want to set unique_by)"
             )
-        else:
-            unique_by = identity
-
     if max_size == 0:
         return builds(list)
     if unique_by is not None:
-        if not (callable(unique_by) or isinstance(unique_by, tuple)):
+        if not callable(unique_by) and not isinstance(unique_by, tuple):
             raise InvalidArgument(
                 f"unique_by={unique_by!r} is not a callable or tuple of callables"
             )
@@ -308,11 +308,7 @@ def lists(
                     "elements"
                 )
 
-            if max_size is not None:
-                max_size = min(max_size, element_count)
-            else:
-                max_size = element_count
-
+            max_size = element_count if max_size is None else min(max_size, element_count)
             return UniqueSampledListStrategy(
                 elements=elements,
                 max_size=max_size,
@@ -436,8 +432,7 @@ def fixed_dictionaries(
             check_strategy(v, f"optional[{k!r}]")
         if type(mapping) != type(optional):
             raise InvalidArgument(
-                "Got arguments of different types: mapping=%s, optional=%s"
-                % (nicerepr(type(mapping)), nicerepr(type(optional)))
+                f"Got arguments of different types: mapping={nicerepr(type(mapping))}, optional={nicerepr(type(optional))}"
             )
         if set(mapping) & set(optional):
             raise InvalidArgument(
@@ -548,8 +543,7 @@ def characters(
         )
     blacklist_characters = blacklist_characters or ""
     whitelist_characters = whitelist_characters or ""
-    overlap = set(blacklist_characters).intersection(whitelist_characters)
-    if overlap:
+    if overlap := set(blacklist_characters).intersection(whitelist_characters):
         raise InvalidArgument(
             f"Characters {sorted(overlap)!r} are present in both "
             f"whitelist_characters={whitelist_characters!r}, and "
@@ -571,8 +565,9 @@ def characters(
     whitelist_categories = as_general_categories(
         whitelist_categories, "whitelist_categories"
     )
-    both_cats = set(blacklist_categories or ()).intersection(whitelist_categories or ())
-    if both_cats:
+    if both_cats := set(blacklist_categories or ()).intersection(
+        whitelist_categories or ()
+    ):
         raise InvalidArgument(
             f"Categories {sorted(both_cats)!r} are present in both "
             f"whitelist_categories={whitelist_categories!r}, and "
@@ -621,14 +616,12 @@ def text(
     if isinstance(alphabet, SearchStrategy):
         char_strategy = alphabet
     else:
-        non_string = [c for c in alphabet if not isinstance(c, str)]
-        if non_string:
+        if non_string := [c for c in alphabet if not isinstance(c, str)]:
             raise InvalidArgument(
                 "The following elements in alphabet are not unicode "
                 f"strings:  {non_string!r}"
             )
-        not_one_char = [c for c in alphabet if len(c) != 1]
-        if not_one_char:
+        if not_one_char := [c for c in alphabet if len(c) != 1]:
             raise InvalidArgument(
                 "The following elements in alphabet are not of length one, "
                 f"which leads to violation of size constraints:  {not_one_char!r}"
@@ -793,9 +786,10 @@ class BuildsStrategy(SearchStrategy):
             if (
                 isinstance(self.target, type)
                 and issubclass(self.target, enum.Enum)
-                and not (self.args or self.kwargs)
+                and not self.args
+                and not self.kwargs
             ):
-                name = self.target.__module__ + "." + self.target.__qualname__
+                name = f"{self.target.__module__}.{self.target.__qualname__}"
                 raise InvalidArgument(
                     f"Calling {name} with no arguments raised an error - "
                     f"try using sampled_from({name}) instead of builds({name})"
@@ -894,21 +888,21 @@ def builds(
                 f"passed ... for {badargs}, but we cannot infer a strategy "
                 "because these arguments have no type annotation"
             )
-        infer_for = {k: v for k, v in hints.items() if k in (required | to_infer)}
-        if infer_for:
+        if infer_for := {
+            k: v for k, v in hints.items() if k in (required | to_infer)
+        }:
             from hypothesis.strategies._internal.types import _global_type_lookup
 
             for kw, t in infer_for.items():
-                if (
-                    getattr(t, "__module__", None) in ("builtins", "typing")
-                    or t in _global_type_lookup
-                ):
-                    kwargs[kw] = from_type(t)
-                else:
-                    # We defer resolution of these type annotations so that the obvious
-                    # approach to registering recursive types just works.  See
-                    # https://github.com/HypothesisWorks/hypothesis/issues/3026
-                    kwargs[kw] = deferred(lambda t=t: from_type(t))  # type: ignore
+                kwargs[kw] = (
+                    from_type(t)
+                    if (
+                        getattr(t, "__module__", None)
+                        in ("builtins", "typing")
+                        or t in _global_type_lookup
+                    )
+                    else deferred(lambda t=t: from_type(t))
+                )
     return BuildsStrategy(target, args, kwargs)
 
 
@@ -1258,7 +1252,7 @@ def _as_finite_decimal(
     value: Union[Real, str, None], name: str, allow_infinity: Optional[bool]
 ) -> Optional[Decimal]:
     """Convert decimal bounds to decimals, carefully."""
-    assert name in ("min_value", "max_value")
+    assert name in {"min_value", "max_value"}
     if value is None:
         return None
     if not isinstance(value, Decimal):
@@ -1422,10 +1416,7 @@ def permutations(values: Sequence[T]) -> SearchStrategy[List[T]]:
     original order of values.
     """
     values = check_sample(values, "permutations")
-    if not values:
-        return builds(list)
-
-    return PermutationStrategy(values)
+    return builds(list) if not values else PermutationStrategy(values)
 
 
 class CompositeStrategy(SearchStrategy):
@@ -1489,7 +1480,7 @@ def composite(f: Callable[..., Ex]) -> Callable[..., SearchStrategy[Ex]]:
     sig = signature(f)
     params = tuple(sig.parameters.values())
 
-    if not (params and "POSITIONAL" in params[0].kind.name):
+    if not params or "POSITIONAL" not in params[0].kind.name:
         raise InvalidArgument(
             "Functions wrapped with composite must take at least one "
             "positional argument."
@@ -1512,9 +1503,7 @@ def composite(f: Callable[..., Ex]) -> Callable[..., SearchStrategy[Ex]]:
 
     accept.__module__ = f.__module__
     accept.__signature__ = newsig
-    if special_method is not None:
-        return special_method(accept)
-    return accept
+    return special_method(accept) if special_method is not None else accept
 
 
 @defines_strategy(force_reusable_values=True)
@@ -1556,15 +1545,15 @@ def complex_numbers(
         max_magnitude = None
 
     if allow_infinity is None:
-        allow_infinity = bool(max_magnitude is None)
+        allow_infinity = max_magnitude is None
     elif allow_infinity and max_magnitude is not None:
         raise InvalidArgument(
             f"Cannot have allow_infinity={allow_infinity!r} with "
             f"max_magnitude={max_magnitude!r}"
         )
     if allow_nan is None:
-        allow_nan = bool(min_magnitude == 0 and max_magnitude is None)
-    elif allow_nan and not (min_magnitude == 0 and max_magnitude is None):
+        allow_nan = min_magnitude == 0 and max_magnitude is None
+    elif allow_nan and (min_magnitude != 0 or max_magnitude is not None):
         raise InvalidArgument(
             f"Cannot have allow_nan={allow_nan!r}, min_magnitude={min_magnitude!r} "
             f"max_magnitude={max_magnitude!r}"
@@ -1657,16 +1646,15 @@ class RunnerStrategy(SearchStrategy):
 
     def do_draw(self, data):
         runner = getattr(data, "hypothesis_runner", not_set)
-        if runner is not_set:
-            if self.default is not_set:
-                raise InvalidArgument(
-                    "Cannot use runner() strategy with no "
-                    "associated runner or explicit default."
-                )
-            else:
-                return self.default
-        else:
+        if runner is not not_set:
             return runner
+        if self.default is not_set:
+            raise InvalidArgument(
+                "Cannot use runner() strategy with no "
+                "associated runner or explicit default."
+            )
+        else:
+            return self.default
 
 
 @defines_strategy(force_reusable_values=True)

@@ -108,7 +108,7 @@ def assert_mypy_errors(fname, expected):
 )
 def test_revealed_types(tmpdir, val, expect):
     """Check that Mypy picks up the expected `X` in SearchStrategy[`X`]."""
-    f = tmpdir.join(expect + ".py")
+    f = tmpdir.join(f"{expect}.py")
     f.write(
         "from hypothesis.strategies import *\n"
         f"s = {val}\n"

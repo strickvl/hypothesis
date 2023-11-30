@@ -46,7 +46,7 @@ def hy_sig_2_np_sig(hy_sig):
 
 
 @use_signature_examples
-@example("()->(%s),()" % ",".join(33 * "0"))
+@example(f'()->({",".join(33 * "0")}),()')
 @given(st.from_regex(np.lib.function_base._SIGNATURE))
 def test_numpy_signature_parses(sig):
     if sig == "(m?,n),(n,p?)->(m?,p?)":  # matmul example
@@ -63,7 +63,7 @@ def test_numpy_signature_parses(sig):
 
         # Now, if we can fix this up does it validate?
         in_, out = sig.split("->")
-        sig = in_ + "->" + out.split(",(")[0]
+        sig = f"{in_}->" + out.split(",(")[0]
         np_sig = np.lib.function_base._parse_gufunc_signature(sig)
         if all(len(s) <= 32 for s in np_sig[0] + np_sig[1]):
             hy_sig = _hypothesis_parse_gufunc_signature(sig, all_checks=False)
@@ -184,7 +184,7 @@ def gufunc_sig_to_einsum_sig(gufunc_sig):
 
     gufunc_sig = _hypothesis_parse_gufunc_signature(gufunc_sig)
     input_sig = ",".join(map(einlabels, gufunc_sig.input_shapes))
-    return input_sig + "->" + einlabels(gufunc_sig.result_shape)
+    return f"{input_sig}->{einlabels(gufunc_sig.result_shape)}"
 
 
 @pytest.mark.parametrize(

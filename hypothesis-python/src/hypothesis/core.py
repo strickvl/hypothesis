@@ -276,9 +276,7 @@ def is_invalid_test(test, original_argspec, given_arguments, given_kwargs):
     if len(given_arguments) > len(original_argspec.args):
         args = tuple(given_arguments)
         return invalid(
-            f"Too many positional arguments for {test.__name__}() were passed to "
-            f"@given - expected at most {int(len(original_argspec.args))} "
-            f"arguments, but got {int(len(args))} {args!r}"
+            f"Too many positional arguments for {test.__name__}() were passed to @given - expected at most {len(original_argspec.args)} arguments, but got {len(args)} {args!r}"
         )
 
     if infer in given_arguments:
@@ -751,27 +749,26 @@ class StateForActualGivenExecution:
                 # block somewhere, suppressing our original StopTest.
                 # We raise a new one here to resume normal operation.
                 raise StopTest(data.testcounter) from e
-            else:
-                # The test failed by raising an exception, so we inform the
-                # engine that this test run was interesting. This is the normal
-                # path for test runs that fail.
+            # The test failed by raising an exception, so we inform the
+            # engine that this test run was interesting. This is the normal
+            # path for test runs that fail.
 
-                tb = get_trimmed_traceback()
-                info = data.extra_information
-                info.__expected_traceback = format_exception(e, tb)
-                info.__expected_exception = e
-                verbose_report(info.__expected_traceback)
+            tb = get_trimmed_traceback()
+            info = data.extra_information
+            info.__expected_traceback = format_exception(e, tb)
+            info.__expected_exception = e
+            verbose_report(info.__expected_traceback)
 
-                self.failed_normally = True
+            self.failed_normally = True
 
-                interesting_origin = get_interesting_origin(e)
-                if trace:  # pragma: no cover
-                    # Trace collection is explicitly disabled under coverage.
-                    self.explain_traces[interesting_origin].add(trace)
-                if interesting_origin[0] == DeadlineExceeded:
-                    self.failed_due_to_deadline = True
-                    self.explain_traces.clear()
-                data.mark_interesting(interesting_origin)
+            interesting_origin = get_interesting_origin(e)
+            if trace:  # pragma: no cover
+                # Trace collection is explicitly disabled under coverage.
+                self.explain_traces[interesting_origin].add(trace)
+            if interesting_origin[0] == DeadlineExceeded:
+                self.failed_due_to_deadline = True
+                self.explain_traces.clear()
+            data.mark_interesting(interesting_origin)
 
     def run_engine(self):
         """Run the test function many times, on database input and generated
@@ -806,10 +803,9 @@ class StateForActualGivenExecution:
                 key=lambda d: sort_key(d.buffer),
                 reverse=True,
             )
-        else:
-            if runner.valid_examples == 0:
-                rep = get_pretty_function_description(self.test)
-                raise Unsatisfiable(f"Unable to satisfy assumptions of {rep}")
+        elif runner.valid_examples == 0:
+            rep = get_pretty_function_description(self.test)
+            raise Unsatisfiable(f"Unable to satisfy assumptions of {rep}")
 
         if not self.falsifying_examples:
             return
@@ -906,9 +902,8 @@ class StateForActualGivenExecution:
     def __flaky(self, message):
         if len(self.falsifying_examples) <= 1:
             raise Flaky(message)
-        else:
-            self.__was_flaky = True
-            report("Flaky example! " + message)
+        self.__was_flaky = True
+        report(f"Flaky example! {message}")
 
 
 @contextlib.contextmanager

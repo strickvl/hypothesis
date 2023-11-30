@@ -35,7 +35,7 @@ def fn_test(*fnkwargs):
         ("fn", "args"),
         fnkwargs,
         ids=[
-            "{}({})".format(fn.__name__, ", ".join(map(pretty, args)))
+            f'{fn.__name__}({", ".join(map(pretty, args))})'
             for fn, args in fnkwargs
         ],
     )
@@ -414,14 +414,12 @@ def test_none_lists_respect_max_and_min_size(ls):
 
 @given(ds.iterables(ds.integers(), max_size=5, min_size=1))
 def test_iterables_are_exhaustible(it):
-    for _ in it:
-        pass
     with pytest.raises(StopIteration):
         next(it)
 
 
 def test_minimal_iterable():
-    assert list(minimal(ds.iterables(ds.integers()), lambda x: True)) == []
+    assert not list(minimal(ds.iterables(ds.integers()), lambda x: True))
 
 
 @pytest.mark.parametrize("parameter_name", ["min_value", "max_value"])

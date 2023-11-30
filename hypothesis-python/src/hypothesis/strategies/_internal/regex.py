@@ -65,10 +65,7 @@ def reuse_group(draw, group_name):
 @st.composite
 def group_conditional(draw, group_name, if_yes, if_no):
     cache = draw(GROUP_CACHE_STRATEGY)
-    if group_name in cache:
-        return draw(if_yes)
-    else:
-        return draw(if_no)
+    return draw(if_yes) if group_name in cache else draw(if_no)
 
 
 @st.composite
@@ -227,11 +224,7 @@ def regex_strategy(regex, fullmatch, *, _temp_jsonschema_hack_no_end_newline=Fal
         return base_regex_strategy(regex, parsed).filter(regex.fullmatch)
 
     if not parsed:
-        if is_unicode:
-            return st.text()
-        else:
-            return st.binary()
-
+        return st.text() if is_unicode else st.binary()
     if is_unicode:
         base_padding_strategy = st.text()
         empty = st.just("")
@@ -423,15 +416,15 @@ def _strategy(codes, context, is_unicode):
             return builder.strategy
 
         elif code == sre.ANY:
-            # Regex '.' (any char)
             if is_unicode:
-                if context.flags & re.DOTALL:
-                    return st.characters()
-                return st.characters(blacklist_characters="\n")
-            else:
-                if context.flags & re.DOTALL:
-                    return binary_char
-                return binary_char.filter(lambda c: c != b"\n")
+                return (
+                    st.characters()
+                    if context.flags & re.DOTALL
+                    else st.characters(blacklist_characters="\n")
+                )
+            if context.flags & re.DOTALL:
+                return binary_char
+            return binary_char.filter(lambda c: c != b"\n")
 
         elif code == sre.AT:
             # Regexes like '^...', '...$', '\bfoo', '\Bfoo'

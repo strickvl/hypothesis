@@ -69,24 +69,22 @@ class IntegersStrategy(SearchStrategy):
         if self.start is None:
             if self.end <= 0:
                 return self.end - abs(d.unbounded_integers(data))
-            else:
-                probe = self.end + 1
-                while self.end < probe:
-                    data.start_example(ONE_BOUND_INTEGERS_LABEL)
-                    probe = d.unbounded_integers(data)
-                    data.stop_example(discard=self.end < probe)
-                return probe
+            probe = self.end + 1
+            while self.end < probe:
+                data.start_example(ONE_BOUND_INTEGERS_LABEL)
+                probe = d.unbounded_integers(data)
+                data.stop_example(discard=self.end < probe)
+            return probe
 
         if self.end is None:
             if self.start >= 0:
                 return self.start + abs(d.unbounded_integers(data))
-            else:
-                probe = self.start - 1
-                while probe < self.start:
-                    data.start_example(ONE_BOUND_INTEGERS_LABEL)
-                    probe = d.unbounded_integers(data)
-                    data.stop_example(discard=probe < self.start)
-                return probe
+            probe = self.start - 1
+            while probe < self.start:
+                data.start_example(ONE_BOUND_INTEGERS_LABEL)
+                probe = d.unbounded_integers(data)
+                data.stop_example(discard=probe < self.start)
+            return probe
 
         return d.integer_range(data, self.start, self.end, center=0)
 
@@ -103,9 +101,7 @@ class IntegersStrategy(SearchStrategy):
             if start is not None and end is not None and start > end:
                 return nothing()
             self = type(self)(start, end)
-        if pred is None:
-            return self
-        return super().filter(pred)
+        return self if pred is None else super().filter(pred)
 
 
 @cacheable
@@ -203,9 +199,7 @@ class FloatStrategy(SearchStrategy):
         self.sampler = d.Sampler(weights)
 
     def __repr__(self):
-        return "{}(allow_infinity={}, allow_nan={}, width={})".format(
-            self.__class__.__name__, self.allow_infinity, self.allow_nan, self.width
-        )
+        return f"{self.__class__.__name__}(allow_infinity={self.allow_infinity}, allow_nan={self.allow_nan}, width={self.width})"
 
     def permitted(self, f):
         assert isinstance(f, float)
@@ -218,9 +212,10 @@ class FloatStrategy(SearchStrategy):
                 float_of(f, self.width)
             except OverflowError:
                 return False
-        if not self.allow_subnormal and 0 < abs(f) < width_smallest_normals[self.width]:
-            return False
-        return True
+        return bool(
+            self.allow_subnormal
+            or not 0 < abs(f) < width_smallest_normals[self.width]
+        )
 
     def do_draw(self, data):
         while True:
@@ -233,9 +228,7 @@ class FloatStrategy(SearchStrategy):
                 flt.write_float(data, result)
             if self.permitted(result):
                 data.stop_example()
-                if self.width < 64:
-                    return float_of(result, self.width)
-                return result
+                return float_of(result, self.width) if self.width < 64 else result
             data.stop_example(discard=True)
 
 
@@ -259,9 +252,7 @@ class FixedBoundedFloatStrategy(SearchStrategy):
         self.width = width
 
     def __repr__(self):
-        return "FixedBoundedFloatStrategy({}, {}, {})".format(
-            self.lower_bound, self.upper_bound, self.width
-        )
+        return f"FixedBoundedFloatStrategy({self.lower_bound}, {self.upper_bound}, {self.width})"
 
     def do_draw(self, data):
         f = self.lower_bound + (
@@ -327,7 +318,7 @@ def floats(
     check_type(bool, exclude_max, "exclude_max")
 
     if allow_nan is None:
-        allow_nan = bool(min_value is None and max_value is None)
+        allow_nan = min_value is None and max_value is None
     elif allow_nan and (min_value is not None or max_value is not None):
         raise InvalidArgument(
             f"Cannot have allow_nan={allow_nan!r}, with min_value or max_value"
@@ -435,7 +426,7 @@ def floats(
         raise InvalidArgument(msg)
 
     if allow_infinity is None:
-        allow_infinity = bool(min_value is None or max_value is None)
+        allow_infinity = min_value is None or max_value is None
     elif allow_infinity:
         if min_value is not None and max_value is not None:
             raise InvalidArgument(

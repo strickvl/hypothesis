@@ -37,9 +37,7 @@ class FloatKey:
 
 
 def convert_value(v):
-    if isinstance(v, float):
-        return FloatKey(v)
-    return (type(v), v)
+    return FloatKey(v) if isinstance(v, float) else (type(v), v)
 
 
 _CACHE = threading.local()

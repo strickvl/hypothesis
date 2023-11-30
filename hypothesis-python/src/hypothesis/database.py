@@ -218,7 +218,7 @@ class DirectoryBasedExampleDatabase(ExampleDatabase):
         path = self._value_path(key, value)
         if not os.path.exists(path):
             suffix = binascii.hexlify(os.urandom(16)).decode("ascii")
-            tmpname = path + "." + suffix
+            tmpname = f"{path}.{suffix}"
             with open(tmpname, "wb") as o:
                 o.write(value)
             try:
@@ -303,7 +303,7 @@ class MultiplexedDatabase(ExampleDatabase):
         self._wrapped = dbs
 
     def __repr__(self) -> str:
-        return "MultiplexedDatabase({})".format(", ".join(map(repr, self._wrapped)))
+        return f'MultiplexedDatabase({", ".join(map(repr, self._wrapped))})'
 
     def fetch(self, key: bytes) -> Iterable[bytes]:
         seen = set()

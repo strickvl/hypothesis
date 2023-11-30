@@ -150,7 +150,7 @@ class ConjectureRunner:
         try:
             yield
         finally:
-            self.statistics[phase + "-phase"] = {
+            self.statistics[f"{phase}-phase"] = {
                 "duration-seconds": time.perf_counter() - start_time,
                 "test-cases": list(self.stats_per_test_case),
                 "distinct-failures": len(self.interesting_examples),
@@ -183,11 +183,7 @@ class ConjectureRunner:
             sys.setrecursionlimit(depth + self.__recursion_limit)
             self._test_function(data)
         except StopTest as e:
-            if e.testcounter == data.testcounter:
-                # This StopTest has successfully stopped its test, and can now
-                # be discarded.
-                pass
-            else:
+            if e.testcounter != data.testcounter:
                 # This StopTest was raised by a different ConjectureData. We
                 # need to re-raise it so that it will eventually reach the
                 # correct engine.
@@ -479,9 +475,7 @@ class ConjectureRunner:
 
     @property
     def database(self):
-        if self.database_key is None:
-            return None
-        return self.settings.database
+        return None if self.database_key is None else self.settings.database
 
     def has_existing_examples(self):
         return self.database is not None and Phase.reuse in self.settings.phases
@@ -497,59 +491,60 @@ class ConjectureRunner:
         then take a random sampling of the remainder and try those. Any
         examples that are no longer interesting are cleared out.
         """
-        if self.has_existing_examples():
-            self.debug("Reusing examples from database")
-            # We have to do some careful juggling here. We have two database
-            # corpora: The primary and secondary. The primary corpus is a
-            # small set of minimized examples each of which has at one point
-            # demonstrated a distinct bug. We want to retry all of these.
+        if not self.has_existing_examples():
+            return
+        self.debug("Reusing examples from database")
+        # We have to do some careful juggling here. We have two database
+        # corpora: The primary and secondary. The primary corpus is a
+        # small set of minimized examples each of which has at one point
+        # demonstrated a distinct bug. We want to retry all of these.
 
-            # We also have a secondary corpus of examples that have at some
-            # point demonstrated interestingness (currently only ones that
-            # were previously non-minimal examples of a bug, but this will
-            # likely expand in future). These are a good source of potentially
-            # interesting examples, but there are a lot of them, so we down
-            # sample the secondary corpus to a more manageable size.
+        # We also have a secondary corpus of examples that have at some
+        # point demonstrated interestingness (currently only ones that
+        # were previously non-minimal examples of a bug, but this will
+        # likely expand in future). These are a good source of potentially
+        # interesting examples, but there are a lot of them, so we down
+        # sample the secondary corpus to a more manageable size.
 
-            corpus = sorted(
-                self.settings.database.fetch(self.database_key), key=sort_key
-            )
-            factor = 0.1 if (Phase.generate in self.settings.phases) else 1
-            desired_size = max(2, ceil(factor * self.settings.max_examples))
+        corpus = sorted(
+            self.settings.database.fetch(self.database_key), key=sort_key
+        )
+        factor = 0.1 if (Phase.generate in self.settings.phases) else 1
+        desired_size = max(2, ceil(factor * self.settings.max_examples))
 
-            if len(corpus) < desired_size:
-                extra_corpus = list(self.settings.database.fetch(self.secondary_key))
+        if len(corpus) < desired_size:
+            extra_corpus = list(self.settings.database.fetch(self.secondary_key))
 
-                shortfall = desired_size - len(corpus)
+            shortfall = desired_size - len(corpus)
 
-                if len(extra_corpus) <= shortfall:
-                    extra = extra_corpus
-                else:
-                    extra = self.random.sample(extra_corpus, shortfall)
-                extra.sort(key=sort_key)
-                corpus.extend(extra)
+            if len(extra_corpus) <= shortfall:
+                extra = extra_corpus
+            else:
+                extra = self.random.sample(extra_corpus, shortfall)
+            extra.sort(key=sort_key)
+            corpus.extend(extra)
 
-            for existing in corpus:
+        for existing in corpus:
+            data = self.cached_test_function(existing)
+            if data.status != Status.INTERESTING:
+                self.settings.database.delete(self.database_key, existing)
+                self.settings.database.delete(self.secondary_key, existing)
+
+        # If we've not found any interesting examples so far we try some of
+        # the pareto front from the last run.
+        if len(corpus) < desired_size and not self.interesting_examples:
+            desired_extra = desired_size - len(corpus)
+            pareto_corpus = list(self.settings.database.fetch(self.pareto_key))
+            if len(pareto_corpus) > desired_extra:
+                pareto_corpus = self.random.sample(pareto_corpus, desired_extra)
+            pareto_corpus.sort(key=sort_key)
+
+            for existing in pareto_corpus:
                 data = self.cached_test_function(existing)
-                if data.status != Status.INTERESTING:
-                    self.settings.database.delete(self.database_key, existing)
-                    self.settings.database.delete(self.secondary_key, existing)
-
-            # If we've not found any interesting examples so far we try some of
-            # the pareto front from the last run.
-            if len(corpus) < desired_size and not self.interesting_examples:
-                desired_extra = desired_size - len(corpus)
-                pareto_corpus = list(self.settings.database.fetch(self.pareto_key))
-                if len(pareto_corpus) > desired_extra:
-                    pareto_corpus = self.random.sample(pareto_corpus, desired_extra)
-                pareto_corpus.sort(key=sort_key)
-
-                for existing in pareto_corpus:
-                    data = self.cached_test_function(existing)
-                    if data not in self.pareto_front:
-                        self.settings.database.delete(self.pareto_key, existing)
-                    if data.status == Status.INTERESTING:
-                        break
+                if data not in self.pareto_front:
+                    self.settings.database.delete(self.pareto_key, existing)
+                if data.status == Status.INTERESTING:
+                    break
 
     def exit_with(self, reason):
         if self.ignore_limits:
@@ -752,79 +747,72 @@ class ConjectureRunner:
         # copy of the other and tries running it. If we've made a good
         # guess about what to put where, this will run a similar generated
         # test case with more duplication.
-        if (
-            # An OVERRUN doesn't have enough information about the test
-            # case to mutate, so we just skip those.
-            data.status >= Status.INVALID
-            # This has a tendency to trigger some weird edge cases during
-            # generation so we don't let it run until we're done with the
-            # health checks.
-            and self.health_check_state is None
+        if data.status < Status.INVALID or self.health_check_state is not None:
+            return
+        initial_calls = self.call_count
+        failed_mutations = 0
+
+        while (
+            self.should_generate_more()
+            # We implement fairly conservative checks for how long we
+            # we should run mutation for, as it's generally not obvious
+            # how helpful it is for any given test case.
+            and self.call_count <= initial_calls + 5
+            and failed_mutations <= 5
         ):
-            initial_calls = self.call_count
-            failed_mutations = 0
+            groups = data.examples.mutator_groups
+            if not groups:
+                break
 
-            while (
-                self.should_generate_more()
-                # We implement fairly conservative checks for how long we
-                # we should run mutation for, as it's generally not obvious
-                # how helpful it is for any given test case.
-                and self.call_count <= initial_calls + 5
-                and failed_mutations <= 5
-            ):
-                groups = data.examples.mutator_groups
-                if not groups:
-                    break
+            group = self.random.choice(groups)
 
-                group = self.random.choice(groups)
+            ex1, ex2 = (
+                data.examples[i] for i in sorted(self.random.sample(group, 2))
+            )
+            assert ex1.end <= ex2.start
 
-                ex1, ex2 = (
-                    data.examples[i] for i in sorted(self.random.sample(group, 2))
+            replacements = [data.buffer[e.start : e.end] for e in [ex1, ex2]]
+
+            replacement = self.random.choice(replacements)
+
+            try:
+                # We attempt to replace both the the examples with
+                # whichever choice we made. Note that this might end
+                # up messing up and getting the example boundaries
+                # wrong - labels matching are only a best guess as to
+                # whether the two are equivalent - but it doesn't
+                # really matter. It may not achieve the desired result
+                # but it's still a perfectly acceptable choice sequence.
+                # to try.
+                new_data = self.cached_test_function(
+                    data.buffer[: ex1.start]
+                    + replacement
+                    + data.buffer[ex1.end : ex2.start]
+                    + replacement
+                    + data.buffer[ex2.end :],
+                    # We set error_on_discard so that we don't end up
+                    # entering parts of the tree we consider redundant
+                    # and not worth exploring.
+                    error_on_discard=True,
+                    extend=BUFFER_SIZE,
                 )
-                assert ex1.end <= ex2.start
+            except ContainsDiscard:
+                failed_mutations += 1
+                continue
 
-                replacements = [data.buffer[e.start : e.end] for e in [ex1, ex2]]
-
-                replacement = self.random.choice(replacements)
-
-                try:
-                    # We attempt to replace both the the examples with
-                    # whichever choice we made. Note that this might end
-                    # up messing up and getting the example boundaries
-                    # wrong - labels matching are only a best guess as to
-                    # whether the two are equivalent - but it doesn't
-                    # really matter. It may not achieve the desired result
-                    # but it's still a perfectly acceptable choice sequence.
-                    # to try.
-                    new_data = self.cached_test_function(
-                        data.buffer[: ex1.start]
-                        + replacement
-                        + data.buffer[ex1.end : ex2.start]
-                        + replacement
-                        + data.buffer[ex2.end :],
-                        # We set error_on_discard so that we don't end up
-                        # entering parts of the tree we consider redundant
-                        # and not worth exploring.
-                        error_on_discard=True,
-                        extend=BUFFER_SIZE,
-                    )
-                except ContainsDiscard:
-                    failed_mutations += 1
-                    continue
-
-                if (
-                    new_data.status >= data.status
-                    and data.buffer != new_data.buffer
-                    and all(
-                        k in new_data.target_observations
-                        and new_data.target_observations[k] >= v
-                        for k, v in data.target_observations.items()
-                    )
-                ):
-                    data = new_data
-                    failed_mutations = 0
-                else:
-                    failed_mutations += 1
+            if (
+                new_data.status >= data.status
+                and data.buffer != new_data.buffer
+                and all(
+                    k in new_data.target_observations
+                    and new_data.target_observations[k] >= v
+                    for k, v in data.target_observations.items()
+                )
+            ):
+                data = new_data
+                failed_mutations = 0
+            else:
+                failed_mutations += 1
 
     def optimise_targets(self):
         """If any target observations have been made, attempt to optimise them
@@ -968,12 +956,11 @@ class ConjectureRunner:
 
                 if sort_key(c) > cap:
                     break
-                else:
-                    self.cached_test_function(c)
-                    # We unconditionally remove c from the secondary key as it
-                    # is either now primary or worse than our primary example
-                    # of this reason for interestingness.
-                    self.settings.database.delete(self.secondary_key, c)
+                self.cached_test_function(c)
+                # We unconditionally remove c from the secondary key as it
+                # is either now primary or worse than our primary example
+                # of this reason for interestingness.
+                self.settings.database.delete(self.secondary_key, c)
 
     def shrink(self, example, predicate=None, allow_transition=None):
         s = self.new_shrinker(example, predicate, allow_transition)

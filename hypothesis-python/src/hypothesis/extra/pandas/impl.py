@@ -39,9 +39,7 @@ try:
 except ImportError:
 
     def is_categorical_dtype(dt):
-        if isinstance(dt, np.dtype):
-            return False
-        return dt == "category"
+        return False if isinstance(dt, np.dtype) else dt == "category"
 
 
 def dtype_for_elements_strategy(s):
@@ -60,11 +58,7 @@ def infer_dtype_if_necessary(dtype, values, elements, draw):
 @check_function
 def elements_and_dtype(elements, dtype, source=None):
 
-    if source is None:
-        prefix = ""
-    else:
-        prefix = f"{source}."
-
+    prefix = "" if source is None else f"{source}."
     if elements is not None:
         check_strategy(elements, f"{prefix}elements")
     else:
@@ -479,28 +473,25 @@ def data_frames(
     if columns is None:
         if rows is None:
             raise InvalidArgument("At least one of rows and columns must be provided")
-        else:
+        @st.composite
+        def rows_only(draw):
+            index = draw(index_strategy)
 
-            @st.composite
-            def rows_only(draw):
-                index = draw(index_strategy)
+            @check_function
+            def row():
+                result = draw(rows)
+                check_type(abc.Iterable, result, "draw(row)")
+                return result
 
-                @check_function
-                def row():
-                    result = draw(rows)
-                    check_type(abc.Iterable, result, "draw(row)")
-                    return result
+            if len(index) > 0:
+                return pandas.DataFrame([row() for _ in index], index=index)
+            # If we haven't drawn any rows we need to draw one row and
+            # then discard it so that we get a consistent shape for the
+            # DataFrame.
+            base = pandas.DataFrame([row()])
+            return base.drop(0)
 
-                if len(index) > 0:
-                    return pandas.DataFrame([row() for _ in index], index=index)
-                else:
-                    # If we haven't drawn any rows we need to draw one row and
-                    # then discard it so that we get a consistent shape for the
-                    # DataFrame.
-                    base = pandas.DataFrame([row()])
-                    return base.drop(0)
-
-            return rows_only()
+        return rows_only()
 
     assert columns is not None
     cols = try_convert(tuple, columns, "columns")

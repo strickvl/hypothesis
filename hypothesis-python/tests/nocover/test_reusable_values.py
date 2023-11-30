@@ -119,10 +119,7 @@ def test_map_breaks_reusability(s):
     def nontrivial_map(x):
         """Non-trivial mapping function, intended to remain opaque even if
         some strategies introspect their mappings."""
-        if cond:
-            return x
-        else:
-            return None
+        return x if cond else None
 
     assert s.has_reusable_values
     assert not s.map(nontrivial_map).has_reusable_values
@@ -136,10 +133,7 @@ def test_flatmap_breaks_reusability(s):
     def nontrivial_flatmap(x):
         """Non-trivial flat-mapping function, intended to remain opaque even
         if some strategies introspect their flat-mappings."""
-        if cond:
-            return st.just(x)
-        else:
-            return st.none()
+        return st.just(x) if cond else st.none()
 
     assert s.has_reusable_values
     assert not s.flatmap(nontrivial_flatmap).has_reusable_values

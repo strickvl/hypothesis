@@ -140,7 +140,7 @@ def define_copy_method(name):
     )(implementation)
 
     result.__module__ = __name__
-    result.__qualname__ = "HypothesisRandom." + result.__name__
+    result.__qualname__ = f"HypothesisRandom.{result.__name__}"
 
     setattr(HypothesisRandom, name, result)
 
@@ -175,10 +175,7 @@ UNIFORM = floats(0, 1)
 
 
 def normalize_zero(f: float) -> float:
-    if f == 0.0:
-        return 0.0
-    else:
-        return f
+    return 0.0 if f == 0.0 else f
 
 
 class ArtificialRandom(HypothesisRandom):
@@ -429,10 +426,9 @@ class RandomStrategy(SearchStrategy):
         self.__use_true_random = use_true_random
 
     def do_draw(self, data):
-        if self.__use_true_random:
-            seed = data.draw_bits(64)
-            return TrueRandom(seed=seed, note_method_calls=self.__note_method_calls)
-        else:
+        if not self.__use_true_random:
             return ArtificialRandom(
                 note_method_calls=self.__note_method_calls, data=data
             )
+        seed = data.draw_bits(64)
+        return TrueRandom(seed=seed, note_method_calls=self.__note_method_calls)

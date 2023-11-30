@@ -79,7 +79,9 @@ def comp_to_kwargs(x: ast.AST, op: ast.AST, y: ast.AST, *, argname: str) -> dict
     a = convert(x, argname)
     b = convert(y, argname)
     num = (int, float)
-    if not (a is ARG and isinstance(b, num)) and not (isinstance(a, num) and b is ARG):
+    if (a is not ARG or not isinstance(b, num)) and (
+        not isinstance(a, num) or b is not ARG
+    ):
         # It would be possible to work out if comparisons between two literals
         # are always true or false, but it's too rare to be worth the complexity.
         # (and we can't even do `arg == arg`, because what if it's NaN?)
@@ -90,17 +92,13 @@ def comp_to_kwargs(x: ast.AST, op: ast.AST, y: ast.AST, *, argname: str) -> dict
             return {"max_value": b, "exclude_max": True}
         return {"min_value": a, "exclude_min": True}
     elif isinstance(op, ast.LtE):
-        if a is ARG:
-            return {"max_value": b}
-        return {"min_value": a}
+        return {"max_value": b} if a is ARG else {"min_value": a}
     elif isinstance(op, ast.Eq):
         if a is ARG:
             return {"min_value": b, "max_value": b}
         return {"min_value": a, "max_value": a}
     elif isinstance(op, ast.GtE):
-        if a is ARG:
-            return {"min_value": b}
-        return {"max_value": a}
+        return {"min_value": b} if a is ARG else {"max_value": a}
     elif isinstance(op, ast.Gt):
         if a is ARG:
             return {"min_value": b, "exclude_min": True}
@@ -158,27 +156,32 @@ def numeric_bounds_from_ast(
 
     See also https://greentreesnakes.readthedocs.io/en/latest/
     """
-    if isinstance(tree, ast.Compare):
-        ops = tree.ops
-        vals = tree.comparators
-        comparisons = [(tree.left, ops[0], vals[0])]
-        for i, (op, val) in enumerate(zip(ops[1:], vals[1:]), start=1):
-            comparisons.append((vals[i - 1], op, val))
-        bounds = []
-        for comp in comparisons:
-            try:
-                kwargs = comp_to_kwargs(*comp, argname=argname)
-                bounds.append(ConstructivePredicate(kwargs, None))
-            except ValueError:
-                bounds.append(fallback)
-        return merge_preds(*bounds)
-
-    if isinstance(tree, ast.BoolOp) and isinstance(tree.op, ast.And):
-        return merge_preds(
-            *(numeric_bounds_from_ast(node, argname, fallback) for node in tree.values)
+    if not isinstance(tree, ast.Compare):
+        return (
+            merge_preds(
+                *(
+                    numeric_bounds_from_ast(node, argname, fallback)
+                    for node in tree.values
+                )
+            )
+            if isinstance(tree, ast.BoolOp) and isinstance(tree.op, ast.And)
+            else fallback
         )
-
-    return fallback
+    ops = tree.ops
+    vals = tree.comparators
+    comparisons = [(tree.left, ops[0], vals[0])]
+    comparisons.extend(
+        (vals[i - 1], op, val)
+        for i, (op, val) in enumerate(zip(ops[1:], vals[1:]), start=1)
+    )
+    bounds = []
+    for comp in comparisons:
+        try:
+            kwargs = comp_to_kwargs(*comp, argname=argname)
+            bounds.append(ConstructivePredicate(kwargs, None))
+        except ValueError:
+            bounds.append(fallback)
+    return merge_preds(*bounds)
 
 
 UNSATISFIABLE = ConstructivePredicate.unchanged(lambda _: False)

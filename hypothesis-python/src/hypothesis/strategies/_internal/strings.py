@@ -51,7 +51,8 @@ class OneCharStringStrategy(SearchStrategy):
                 ("min_codepoint", min_codepoint),
                 ("max_codepoint", max_codepoint),
             ]
-            if not (v in (None, "") or (k == "blacklist_categories" and v == ("Cs",)))
+            if v not in (None, "")
+            and (k != "blacklist_categories" or v != ("Cs",))
         )
         if not intervals:
             raise InvalidArgument(

@@ -205,7 +205,7 @@ test_subset_of_ten_is_sometimes_empty = define_test(
 test_mostly_sensible_floats = define_test(floats(), lambda t: t + 1 > t)
 
 test_mostly_largish_floats = define_test(
-    floats(), lambda t: t + 1 > 1, condition=lambda x: x > 0
+    floats(), lambda t: t > 0, condition=lambda x: x > 0
 )
 
 test_ints_can_occasionally_be_really_large = define_test(

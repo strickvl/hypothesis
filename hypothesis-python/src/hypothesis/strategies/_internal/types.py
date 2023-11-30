@@ -225,10 +225,7 @@ def has_type_arguments(type_):
     """Decides whethere or not this type has applied type arguments."""
     args = getattr(type_, "__args__", None)
     if args and isinstance(type_, _GenericAlias):
-        # There are some cases when declared types do already have type arguments
-        # Like `Sequence`, that is `_GenericAlias(abc.Sequence[T])[T]`
-        parameters = getattr(type_, "__parameters__", None)
-        if parameters:  # So, we need to know if type args are just "aliases"
+        if parameters := getattr(type_, "__parameters__", None):
             return args != parameters
     return bool(args)
 
@@ -346,10 +343,7 @@ def from_typing_type(thing):
         # if there is more than one allowed type, and the element type is
         # not either `int` or a Union with `int` as one of its elements.
         elem_type = (getattr(thing, "__args__", None) or ["not int"])[0]
-        if is_a_union(elem_type):
-            union_elems = elem_type.__args__
-        else:
-            union_elems = ()
+        union_elems = elem_type.__args__ if is_a_union(elem_type) else ()
         if not any(
             isinstance(T, type) and issubclass(int, T)
             for T in list(union_elems) + [elem_type]
@@ -366,8 +360,12 @@ def from_typing_type(thing):
         for k, v in mapping.items()
         if sum(try_issubclass(k, T) for T in mapping) == 1
     ]
-    empty = ", ".join(repr(s) for s in strategies if s.is_empty)
-    if empty or not strategies:
+    if empty := ", ".join(repr(s) for s in strategies if s.is_empty):
+        raise ResolutionFailed(
+            f"Could not resolve {empty or thing} to a strategy; "
+            "consider using register_type_strategy"
+        )
+    elif not strategies:
         raise ResolutionFailed(
             f"Could not resolve {empty or thing} to a strategy; "
             "consider using register_type_strategy"
@@ -610,9 +608,7 @@ def register(type_, fallback=None, *, module=typing):
         @functools.wraps(func)
         def really_inner(thing):
             # This branch is for Python < 3.8, when __args__ was not always tracked
-            if getattr(thing, "__args__", None) is None:
-                return fallback  # pragma: no cover
-            return func(thing)
+            return fallback if getattr(thing, "__args__", None) is None else func(thing)
 
         _global_type_lookup[type_] = really_inner
         return really_inner

@@ -118,7 +118,7 @@ else:
         )
 
     def _any_hypothesis_option(config):
-        return bool(any(config.getoption(opt) for opt in _ALL_OPTIONS))
+        return any((config.getoption(opt) for opt in _ALL_OPTIONS))
 
     def pytest_report_header(config):
         if not (
@@ -143,8 +143,7 @@ else:
             return
         from hypothesis import Phase, Verbosity, core, settings
 
-        profile = config.getoption(LOAD_PROFILE_OPTION)
-        if profile:
+        if profile := config.getoption(LOAD_PROFILE_OPTION):
             settings.load_profile(profile)
         verbosity_name = config.getoption(VERBOSITY_OPTION)
         if verbosity_name and verbosity_name != settings.default.verbosity.name:
@@ -274,7 +273,7 @@ else:
                 ("Hypothesis", "\n".join(item.hypothesis_report_information))
             )
         if hasattr(item, "hypothesis_statistics") and report.when == "teardown":
-            name = "hypothesis-statistics-" + item.nodeid
+            name = f"hypothesis-statistics-{item.nodeid}"
             try:
                 item.config._xml.add_global_property(name, item.hypothesis_statistics)
             except AttributeError:

@@ -300,10 +300,7 @@ def test_may_not_use_overflowing_integers(xp, xps, kwargs):
 )
 def test_may_not_use_unrepresentable_elements(xp, xps, fill, dtype, strat):
     """Strategy with elements not representable by the dtype raises helpful error."""
-    if fill:
-        kw = {"elements": st.nothing(), "fill": strat}
-    else:
-        kw = {"elements": strat}
+    kw = {"elements": st.nothing(), "fill": strat} if fill else {"elements": strat}
     with pytest.raises(InvalidArgument):
         xps.arrays(dtype=dtype, shape=1, **kw).example()
 

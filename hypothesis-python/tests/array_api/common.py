@@ -47,4 +47,4 @@ def flushes_to_zero(xp, width: int) -> bool:
     if width not in [32, 64]:
         raise ValueError(f"{width=}, but should be either 32 or 64")
     dtype = getattr(xp, f"float{width}")
-    return bool(xp.asarray(next_up(0.0, width=width), dtype=dtype) == 0)
+    return xp.asarray(next_up(0.0, width=width), dtype=dtype) == 0

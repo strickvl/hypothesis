@@ -52,19 +52,18 @@ class settingsProperty:
     def __get__(self, obj, type=None):
         if obj is None:
             return self
-        else:
-            try:
-                result = obj.__dict__[self.name]
-                # This is a gross hack, but it preserves the old behaviour that
-                # you can change the storage directory and it will be reflected
-                # in the default database.
-                if self.name == "database" and result is not_set:
-                    from hypothesis.database import ExampleDatabase
+        try:
+            result = obj.__dict__[self.name]
+            # This is a gross hack, but it preserves the old behaviour that
+            # you can change the storage directory and it will be reflected
+            # in the default database.
+            if self.name == "database" and result is not_set:
+                from hypothesis.database import ExampleDatabase
 
-                    result = ExampleDatabase(not_set)
-                return result
-            except KeyError:
-                raise AttributeError(self.name) from None
+                result = ExampleDatabase(not_set)
+            return result
+        except KeyError:
+            raise AttributeError(self.name) from None
 
     def __set__(self, obj, value):
         obj.__dict__[self.name] = value
@@ -100,7 +99,7 @@ class settingsMeta(type):
             assert default_variable.value is not None
         return default_variable.value
 
-    def _assign_default_internal(cls, value):
+    def _assign_default_internal(self, value):
         default_variable.value = value
 
     def __setattr__(cls, name, value):
@@ -197,22 +196,21 @@ class settings(metaclass=settingsMeta):
         if inspect.isclass(test):
             from hypothesis.stateful import RuleBasedStateMachine
 
-            if issubclass(_test, RuleBasedStateMachine):
-                attr_name = "_hypothesis_internal_settings_applied"
-                if getattr(test, attr_name, False):
-                    raise InvalidArgument(
-                        "Applying the @settings decorator twice would "
-                        "overwrite the first version; merge their arguments "
-                        "instead."
-                    )
-                setattr(test, attr_name, True)
-                _test.TestCase.settings = self
-                return test  # type: ignore
-            else:
+            if not issubclass(_test, RuleBasedStateMachine):
                 raise InvalidArgument(
                     "@settings(...) can only be used as a decorator on "
                     "functions, or on subclasses of RuleBasedStateMachine."
                 )
+            attr_name = "_hypothesis_internal_settings_applied"
+            if getattr(test, attr_name, False):
+                raise InvalidArgument(
+                    "Applying the @settings decorator twice would "
+                    "overwrite the first version; merge their arguments "
+                    "instead."
+                )
+            setattr(test, attr_name, True)
+            _test.TestCase.settings = self
+            return test  # type: ignore
         if hasattr(_test, "_hypothesis_internal_settings_applied"):
             # Can't use _hypothesis_internal_use_settings as an indicator that
             # @settings was applied, because @given also assigns that attribute.
@@ -280,7 +278,7 @@ class settings(metaclass=settingsMeta):
 
     def __repr__(self):
         bits = sorted(f"{name}={getattr(self, name)!r}" for name in all_settings)
-        return "settings({})".format(", ".join(bits))
+        return f'settings({", ".join(bits)})'
 
     def show_changed(self):
         bits = []

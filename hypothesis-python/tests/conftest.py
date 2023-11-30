@@ -27,8 +27,7 @@ run()
 # or that don't work on the current version of Python.
 collect_ignore_glob = ["django/*"]
 if sys.version_info < (3, 8):
-    collect_ignore_glob.append("array_api")
-    collect_ignore_glob.append("cover/*py38*")
+    collect_ignore_glob.extend(("array_api", "cover/*py38*"))
 if sys.version_info < (3, 9):
     collect_ignore_glob.append("cover/*py39*")
 if sys.version_info < (3, 10):
@@ -38,12 +37,14 @@ if sys.version_info >= (3, 11):
     collect_ignore_glob.append("cover/test_asyncio.py")  # @asyncio.coroutine removed
 
     assert sys.version_info.releaselevel == "alpha"
-    # These seem to fail due to traceback rendering failures, TODO fix the tests
-    collect_ignore_glob.append("cover/test_traceback_elision.py")
-    collect_ignore_glob.append("pytest/test_capture.py")
-    # Changes to type-annotation inspection, TODO fix during the beta phase
-    collect_ignore_glob.append("cover/test_lookup.py")
-    collect_ignore_glob.append("cover/test_lookup_py37.py")
+    collect_ignore_glob.extend(
+        (
+            "cover/test_traceback_elision.py",
+            "pytest/test_capture.py",
+            "cover/test_lookup.py",
+            "cover/test_lookup_py37.py",
+        )
+    )
 
 
 def pytest_configure(config):

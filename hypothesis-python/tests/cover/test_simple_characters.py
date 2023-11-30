@@ -118,7 +118,7 @@ def test_whitelisted_characters_override():
     find_any(st, lambda c: c in good_characters)
     find_any(st, lambda c: c in "0123456789")
 
-    assert_no_examples(st, lambda c: c not in good_characters + "0123456789")
+    assert_no_examples(st, lambda c: c not in f"{good_characters}0123456789")
 
 
 def test_blacklisted_characters():

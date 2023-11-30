@@ -51,13 +51,7 @@ class FeatureFlags:
         # score >= that value. In particular when self.__baseline is 0, all
         # features will be enabled. This is so that we shrink in the direction
         # of more features being enabled.
-        if self.__data is not None:
-            self.__p_disabled = data.draw_bits(8) / 255.0
-        else:
-            # If data is None we're in example mode so all that matters is the
-            # enabled/disabled lists above. We set this up so that everything
-            # else is enabled by default.
-            self.__p_disabled = 0.0
+        self.__p_disabled = 0.0 if self.__data is None else data.draw_bits(8) / 255.0
 
     def is_enabled(self, name):
         """Tests whether the feature named ``name`` should be enabled on this

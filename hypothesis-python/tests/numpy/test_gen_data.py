@@ -360,10 +360,7 @@ def test_overflowing_integers_are_deprecated(fill, data):
 @fails_with(InvalidArgument)
 @given(data=st.data())
 def test_unrepresentable_elements_are_deprecated(fill, dtype, strat, data):
-    if fill:
-        kw = {"elements": st.nothing(), "fill": strat}
-    else:
-        kw = {"elements": strat}
+    kw = {"elements": st.nothing(), "fill": strat} if fill else {"elements": strat}
     arr = data.draw(nps.arrays(dtype=dtype, shape=(1,), **kw))
     try:
         # This is a float or complex number, and has overflowed to infinity,
@@ -432,7 +429,7 @@ def test_mapped_positive_axes_are_unique(ndim, data):
     axes = data.draw(
         nps.valid_tuple_axes(ndim, min_size=min_size, max_size=max_size), label="axes"
     )
-    assert len(set(axes)) == len({i if 0 < i else ndim + i for i in axes})
+    assert len(set(axes)) == len({i if i > 0 else ndim + i for i in axes})
 
 
 @given(ndim=st.integers(0, 5), data=st.data())
@@ -790,7 +787,7 @@ def test_mutually_broadcastable_shape_adjusts_max_dim_with_default_bounds(
     if max_side == 3 or base_shape[0] == 0:
         assert all(len(s) <= 3 for s in shapes)
     elif min_dims == 4:
-        assert all(4 <= len(s) for s in shapes)
+        assert all(len(s) >= 4 for s in shapes)
 
     # error if drawn shape for b is not broadcast-compatible
     assert len(shapes) == num_shapes

@@ -100,7 +100,7 @@ def make_report(explanations, cap_lines_at=5):
     for origin, locations in explanations.items():
         assert locations  # or else we wouldn't have stored the key, above.
         report_lines = [
-            "        {}:{}".format(k, ", ".join(map(str, sorted(l for _, l in v))))
+            f'        {k}:{", ".join(map(str, sorted(l for _, l in v)))}'
             for k, v in groupby(locations, lambda kv: kv[0])
         ]
         report_lines.sort(key=lambda line: (line.startswith(LIB_DIR), line))

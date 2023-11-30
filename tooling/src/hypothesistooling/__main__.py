@@ -191,12 +191,11 @@ def format():
             shebang = None
             first = True
             in_header = True
-            for l in o.readlines():
+            for l in o:
                 if first:
                     first = False
                     if l[:2] == "#!":
                         shebang = l
-                        continue
                 elif in_header and l.rstrip() == last_header_line:
                     in_header = False
                     lines = []
@@ -243,11 +242,7 @@ def check_not_changed():
 
 @task()
 def compile_requirements(upgrade=False):
-    if upgrade:
-        extra = ["--upgrade"]
-    else:
-        extra = []
-
+    extra = ["--upgrade"] if upgrade else []
     for f in glob(os.path.join("requirements", "*.in")):
         base, _ = os.path.splitext(f)
         pip_tool(
@@ -256,7 +251,7 @@ def compile_requirements(upgrade=False):
             f,
             "hypothesis-python/setup.py",
             "--output-file",
-            base + ".txt",
+            f"{base}.txt",
             cwd=tools.ROOT,
         )
 
@@ -370,7 +365,7 @@ def run_tox(task, version):
     env = dict(os.environ)
     python = install.python_executable(version)
 
-    env["PATH"] = os.path.dirname(python) + ":" + env["PATH"]
+    env["PATH"] = f"{os.path.dirname(python)}:" + env["PATH"]
     print(env["PATH"])
 
     pip_tool("tox", "-e", task, env=env, cwd=hp.HYPOTHESIS_PYTHON)
@@ -450,7 +445,7 @@ def check_pypy38():
 
 
 def standard_tox_task(name):
-    TASKS["check-" + name] = python_tests(lambda: run_tox(name, PYMAIN))
+    TASKS[f"check-{name}"] = python_tests(lambda: run_tox(name, PYMAIN))
 
 
 standard_tox_task("nose")
@@ -570,7 +565,7 @@ def audit_conjecture_rust():
 def tasks():
     """Print a list of all task names supported by the build system."""
     for task_name in sorted(TASKS.keys()):
-        print("    " + task_name)
+        print(f"    {task_name}")
 
 
 if __name__ == "__main__":

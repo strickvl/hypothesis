@@ -342,13 +342,9 @@ class RuleBasedStateMachine(metaclass=StateMachineMeta):
                     output_names = self._last_names(len(result.values))
                     output_assignment = ", ".join(output_names) + " = "
             else:
-                output_assignment = self._last_names(1)[0] + " = "
+                output_assignment = f"{self._last_names(1)[0]} = "
         report(
-            "{}state.{}({})".format(
-                output_assignment,
-                rule.function.__name__,
-                ", ".join("%s=%s" % kv for kv in data.items()),
-            )
+            f'{output_assignment}state.{rule.function.__name__}({", ".join("%s=%s" % kv for kv in data.items())})'
         )
 
     def _add_result_to_targets(self, targets, result):
@@ -393,6 +389,7 @@ class RuleBasedStateMachine(metaclass=StateMachineMeta):
     @classmethod
     @lru_cache()
     def _to_test_case(cls):
+
         class StateMachineTestCase(TestCase):
             settings = Settings(deadline=None, suppress_health_check=HealthCheck.all())
 
@@ -401,8 +398,8 @@ class RuleBasedStateMachine(metaclass=StateMachineMeta):
 
             runTest.is_hypothesis_test = True
 
-        StateMachineTestCase.__name__ = cls.__name__ + ".TestCase"
-        StateMachineTestCase.__qualname__ = cls.__qualname__ + ".TestCase"
+        StateMachineTestCase.__name__ = f"{cls.__name__}.TestCase"
+        StateMachineTestCase.__qualname__ = f"{cls.__qualname__}.TestCase"
         return StateMachineTestCase
 
 
@@ -446,10 +443,7 @@ class BundleReferenceStrategy(SearchStrategy):
         # to delete data generated earlier, as when the error is towards the
         # end there can be a lot of hard to remove padding.
         position = cu.integer_range(data, 0, len(bundle) - 1, center=len(bundle))
-        if self.consume:
-            return bundle.pop(position)
-        else:
-            return bundle[position]
+        return bundle.pop(position) if self.consume else bundle[position]
 
 
 class Bundle(SearchStrategy[Ex]):

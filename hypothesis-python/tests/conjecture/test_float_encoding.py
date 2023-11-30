@@ -104,11 +104,7 @@ def test_floats_order_worse_than_their_integral_part(n, g):
     assume(int(f) != f)
     assume(int(f) != 0)
     i = flt.float_to_lex(f)
-    if f < 0:
-        g = ceil(f)
-    else:
-        g = floor(f)
-
+    g = ceil(f) if f < 0 else floor(f)
     assert flt.float_to_lex(float(g)) < i
 
 

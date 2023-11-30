@@ -25,56 +25,7 @@ from hypothesis.strategies._internal.strategies import FilteredStrategy
 from tests.common.utils import fails_with
 
 
-@pytest.mark.parametrize(
-    "strategy, predicate, start, end",
-    [
-        # Integers with integer bounds
-        (st.integers(1, 5), partial(operator.lt, 3), 4, 5),  # lambda x: 3 < x
-        (st.integers(1, 5), partial(operator.le, 3), 3, 5),  # lambda x: 3 <= x
-        (st.integers(1, 5), partial(operator.eq, 3), 3, 3),  # lambda x: 3 == x
-        (st.integers(1, 5), partial(operator.ge, 3), 1, 3),  # lambda x: 3 >= x
-        (st.integers(1, 5), partial(operator.gt, 3), 1, 2),  # lambda x: 3 > x
-        # Integers with non-integer bounds
-        (st.integers(1, 5), partial(operator.lt, 3.5), 4, 5),
-        (st.integers(1, 5), partial(operator.le, 3.5), 4, 5),
-        (st.integers(1, 5), partial(operator.ge, 3.5), 1, 3),
-        (st.integers(1, 5), partial(operator.gt, 3.5), 1, 3),
-        (st.integers(1, 5), partial(operator.lt, -math.inf), 1, 5),
-        (st.integers(1, 5), partial(operator.gt, math.inf), 1, 5),
-        # Integers with only one bound
-        (st.integers(min_value=1), partial(operator.lt, 3), 4, None),
-        (st.integers(min_value=1), partial(operator.le, 3), 3, None),
-        (st.integers(max_value=5), partial(operator.ge, 3), None, 3),
-        (st.integers(max_value=5), partial(operator.gt, 3), None, 2),
-        # Unbounded integers
-        (st.integers(), partial(operator.lt, 3), 4, None),
-        (st.integers(), partial(operator.le, 3), 3, None),
-        (st.integers(), partial(operator.eq, 3), 3, 3),
-        (st.integers(), partial(operator.ge, 3), None, 3),
-        (st.integers(), partial(operator.gt, 3), None, 2),
-        # Simple lambdas
-        (st.integers(), lambda x: x < 3, None, 2),
-        (st.integers(), lambda x: x <= 3, None, 3),
-        (st.integers(), lambda x: x == 3, 3, 3),
-        (st.integers(), lambda x: x >= 3, 3, None),
-        (st.integers(), lambda x: x > 3, 4, None),
-        # Simple lambdas, reverse comparison
-        (st.integers(), lambda x: 3 > x, None, 2),
-        (st.integers(), lambda x: 3 >= x, None, 3),
-        (st.integers(), lambda x: 3 == x, 3, 3),
-        (st.integers(), lambda x: 3 <= x, 3, None),
-        (st.integers(), lambda x: 3 < x, 4, None),
-        # More complicated lambdas
-        (st.integers(), lambda x: 0 < x < 5, 1, 4),
-        (st.integers(), lambda x: 0 < x >= 1, 1, None),
-        (st.integers(), lambda x: 1 > x <= 0, None, 0),
-        (st.integers(), lambda x: x > 0 and x > 0, 1, None),
-        (st.integers(), lambda x: x < 1 and x < 1, None, 0),
-        (st.integers(), lambda x: x > 1 and x > 0, 2, None),
-        (st.integers(), lambda x: x < 1 and x < 2, None, 0),
-    ],
-    ids=get_pretty_function_description,
-)
+@pytest.mark.parametrize("strategy, predicate, start, end", [(st.integers(1, 5), partial(operator.lt, 3), 4, 5), (st.integers(1, 5), partial(operator.le, 3), 3, 5), (st.integers(1, 5), partial(operator.eq, 3), 3, 3), (st.integers(1, 5), partial(operator.ge, 3), 1, 3), (st.integers(1, 5), partial(operator.gt, 3), 1, 2), (st.integers(1, 5), partial(operator.lt, 3.5), 4, 5), (st.integers(1, 5), partial(operator.le, 3.5), 4, 5), (st.integers(1, 5), partial(operator.ge, 3.5), 1, 3), (st.integers(1, 5), partial(operator.gt, 3.5), 1, 3), (st.integers(1, 5), partial(operator.lt, -math.inf), 1, 5), (st.integers(1, 5), partial(operator.gt, math.inf), 1, 5), (st.integers(min_value=1), partial(operator.lt, 3), 4, None), (st.integers(min_value=1), partial(operator.le, 3), 3, None), (st.integers(max_value=5), partial(operator.ge, 3), None, 3), (st.integers(max_value=5), partial(operator.gt, 3), None, 2), (st.integers(), partial(operator.lt, 3), 4, None), (st.integers(), partial(operator.le, 3), 3, None), (st.integers(), partial(operator.eq, 3), 3, 3), (st.integers(), partial(operator.ge, 3), None, 3), (st.integers(), partial(operator.gt, 3), None, 2), (st.integers(), lambda x: x < 3, None, 2), (st.integers(), lambda x: x <= 3, None, 3), (st.integers(), lambda x: x == 3, 3, 3), (st.integers(), lambda x: x >= 3, 3, None), (st.integers(), lambda x: x > 3, 4, None), (st.integers(), lambda x: x < 3, None, 2), (st.integers(), lambda x: x <= 3, None, 3), (st.integers(), lambda x: x == 3, 3, 3), (st.integers(), lambda x: x >= 3, 3, None), (st.integers(), lambda x: x > 3, 4, None), (st.integers(), lambda x: 0 < x < 5, 1, 4), (st.integers(), lambda x: 0 < x >= 1, 1, None), (st.integers(), lambda x: 1 > x <= 0, None, 0), (st.integers(), lambda x: x > 0 and x > 0, 1, None), (st.integers(), lambda x: x < 1 and x < 1, None, 0), (st.integers(), lambda x: x > 1 and x > 0, 2, None), (st.integers(), lambda x: x < 1 and x < 2, None, 0)], ids=get_pretty_function_description)
 @given(data=st.data())
 def test_filter_rewriting(data, strategy, predicate, start, end):
     s = strategy.filter(predicate)
@@ -177,21 +128,7 @@ lambda_without_source = eval("lambda x: x > 2", {}, {})
 assert get_pretty_function_description(lambda_without_source) == "lambda x: <unknown>"
 
 
-@pytest.mark.parametrize(
-    "start, end, predicate",
-    [
-        (1, 4, lambda x: 0 < x < 5 and x % 7),
-        (0, 9, lambda x: 0 <= x < 10 and x % 3),
-        (1, None, lambda x: 0 < x <= Y),
-        (None, None, lambda x: x == x),
-        (None, None, lambda x: 1 == 1),
-        (None, None, lambda x: 1 <= 2),
-        (None, None, lambda x: x != 0),
-        (None, None, NotAFunction()),
-        (None, None, lambda_without_source),
-        (None, None, lambda x, y=2: x >= 0),
-    ],
-)
+@pytest.mark.parametrize("start, end, predicate", [(1, 4, lambda x: 0 < x < 5 and x % 7), (0, 9, lambda x: 0 <= x < 10 and x % 3), (1, None, lambda x: 0 < x <= Y), (None, None, lambda x: x == x), (None, None, lambda x: True), (None, None, lambda x: 1 <= 2), (None, None, lambda x: x != 0), (None, None, NotAFunction()), (None, None, lambda_without_source), (None, None, lambda x, y=2: x >= 0)])
 @given(data=st.data())
 def test_rewriting_partially_understood_filters(data, start, end, predicate):
     s = st.integers().filter(predicate).wrapped_strategy

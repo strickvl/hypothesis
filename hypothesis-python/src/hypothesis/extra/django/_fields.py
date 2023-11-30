@@ -257,9 +257,7 @@ def _for_text(field):
 
 @register_for(df.BooleanField)
 def _for_form_boolean(field):
-    if field.required:
-        return st.just(True)
-    return st.booleans()
+    return st.just(True) if field.required else st.booleans()
 
 
 def register_field_strategy(
@@ -338,6 +336,4 @@ def from_field(field: F) -> st.SearchStrategy[Union[F, None]]:
 
         strategy = strategy.filter(validate)
 
-    if getattr(field, "null", False):
-        return st.none() | strategy
-    return strategy
+    return st.none() | strategy if getattr(field, "null", False) else strategy

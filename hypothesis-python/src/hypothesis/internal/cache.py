@@ -20,13 +20,7 @@ class Entry:
 
     @property
     def sort_key(self):
-        if self.pins == 0:
-            # Unpinned entries are sorted by score.
-            return (0, self.score)
-        else:
-            # Pinned entries sort after unpinned ones. Beyond that, we don't
-            # worry about their relative order.
-            return (1,)
+        return (0, self.score) if self.pins == 0 else (1, )
 
 
 class GenericCache:

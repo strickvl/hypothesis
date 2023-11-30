@@ -772,6 +772,7 @@ def test_removes_needless_steps():
 
 
 def test_prints_equal_values_with_correct_variable_name():
+
     @Settings(max_examples=100)
     class MovesBetweenBundles(RuleBasedStateMachine):
         b1 = Bundle("b1")
@@ -795,7 +796,7 @@ def test_prints_equal_values_with_correct_variable_name():
 
     result = o.getvalue()
     for m in ["create", "transfer", "fail"]:
-        assert result.count("state." + m) == 1
+        assert result.count(f"state.{m}") == 1
     assert "v1 = state.create()" in result
     assert "v2 = state.transfer(source=v1)" in result
     assert "state.fail(source=v2)" in result

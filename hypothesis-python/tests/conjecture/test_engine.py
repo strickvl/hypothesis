@@ -739,7 +739,7 @@ def test_database_clears_secondary_key():
     runner.clear_secondary_key()
 
     assert len(set(database.fetch(key))) == 1
-    assert len(set(database.fetch(runner.secondary_key))) == 0
+    assert not set(database.fetch(runner.secondary_key))
 
 
 def test_database_uses_values_from_secondary_key():
@@ -820,11 +820,7 @@ def test_exit_because_shrink_phase_timeout(monkeypatch):
 def test_dependent_block_pairs_can_lower_to_zero():
     @shrinking_from([1, 0, 1])
     def shrinker(data):
-        if data.draw_bits(1):
-            n = data.draw_bits(16)
-        else:
-            n = data.draw_bits(8)
-
+        n = data.draw_bits(16) if data.draw_bits(1) else data.draw_bits(8)
         if n == 1:
             data.mark_interesting()
 

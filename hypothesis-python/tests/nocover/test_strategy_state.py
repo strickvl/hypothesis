@@ -148,10 +148,7 @@ class HypothesisSpec(RuleBasedStateMachine):
         def do_map(value):
             rep = repr(value)
             random = Random(hashlib.sha384((mixer + rep).encode()).digest())
-            if random.random() <= p:
-                return result1
-            else:
-                return result2
+            return result1 if random.random() <= p else result2
 
         return source.flatmap(do_map)
 

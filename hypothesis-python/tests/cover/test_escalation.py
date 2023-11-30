@@ -55,8 +55,8 @@ def test_is_hypothesis_file_not_confused_by_prefix(monkeypatch):
     assert esc.is_hypothesis_file(esc.__file__)
 
     assert not esc.is_hypothesis_file(pytest.__file__)
-    assert not esc.is_hypothesis_file(root + "-suffix")
-    assert not esc.is_hypothesis_file(root + "-suffix/something.py")
+    assert not esc.is_hypothesis_file(f"{root}-suffix")
+    assert not esc.is_hypothesis_file(f"{root}-suffix/something.py")
 
 
 @pytest.mark.parametrize("fname", ["", "<ipython-input-18-f7c304bea5eb>"])

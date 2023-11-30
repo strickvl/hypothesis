@@ -52,9 +52,7 @@ def learner_for(strategy):
         result = runner.cached_test_function(s)
         if result.status < Status.VALID:
             return False
-        if result.has_discards:
-            return False
-        return result.buffer == s
+        return False if result.has_discards else result.buffer == s
 
     learner = LStar(predicate)
 

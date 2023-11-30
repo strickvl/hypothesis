@@ -591,9 +591,7 @@ def _get_qualname(obj, include_module=False):
     # Replacing angle-brackets for objects defined in `.<locals>.`
     qname = getattr(obj, "__qualname__", obj.__name__)
     qname = qname.replace("<", "_").replace(">", "_").replace(" ", "")
-    if include_module:
-        return _get_module(obj) + "." + qname
-    return qname
+    return f"{_get_module(obj)}.{qname}" if include_module else qname
 
 
 def _write_call(
@@ -621,13 +619,15 @@ def _write_call(
     if assign:
         call = f"{assign} = {call}"
     raises = _exceptions_from_docstring(getattr(func, "__doc__", "") or "")
-    exnames = [ex.__name__ for ex in raises if not issubclass(ex, except_)]
-    if not exnames:
+    if exnames := [
+        ex.__name__ for ex in raises if not issubclass(ex, except_)
+    ]:
+        return SUPPRESS_BLOCK.format(
+            test_body=indent(call, prefix="    "),
+            exceptions="(" + ", ".join(exnames) + ")" if len(exnames) > 1 else exnames[0],
+        )
+    else:
         return call
-    return SUPPRESS_BLOCK.format(
-        test_body=indent(call, prefix="    "),
-        exceptions="(" + ", ".join(exnames) + ")" if len(exnames) > 1 else exnames[0],
-    )
 
 
 def _st_strategy_names(s: str) -> str:
@@ -657,7 +657,8 @@ def _make_test_body(
     # Get strategies for all the arguments to each function we're testing.
     with _with_any_registered():
         given_strategies = given_strategies or _get_strategies(
-            *funcs, pass_result_to_next_func=ghost in ("idempotent", "roundtrip")
+            *funcs,
+            pass_result_to_next_func=ghost in {"idempotent", "roundtrip"}
         )
         reprs = [((k,) + _valid_syntax_repr(v)) for k, v in given_strategies.items()]
         imports = imports.union(*(imp for _, imp, _ in reprs))
@@ -691,11 +692,7 @@ def _make_test_body(
     # For unittest-style, indent method further into a class body
     if style == "unittest":
         imports.add("unittest")
-        body = "class Test{}{}(unittest.TestCase):\n{}".format(
-            ghost.title(),
-            "".join(_get_qualname(f).replace(".", "").title() for f in funcs),
-            indent(body, "    "),
-        )
+        body = f'class Test{ghost.title()}{"".join(_get_qualname(f).replace(".", "").title() for f in funcs)}(unittest.TestCase):\n{indent(body, "    ")}'
 
     return imports, body
 
@@ -717,7 +714,7 @@ def _make_test(imports: ImportSet, body: str) -> str:
         if not (module.startswith("hypothesis.strategies") and name in st.__all__):
             from_imports[module].add(name)
     from_ = {
-        "from {} import {}".format(module, ", ".join(sorted(names)))
+        f'from {module} import {", ".join(sorted(names))}'
         for module, names in from_imports.items()
         if isinstance(module, str) and module not in do_not_import
     }
@@ -807,7 +804,7 @@ def magic(
                 if pkg and any(getattr(f, "__module__", pkg) == pkg for f in funcs):
                     funcs = [f for f in funcs if getattr(f, "__module__", pkg) == pkg]
             for f in funcs:
-                try:
+                with contextlib.suppress(TypeError, ValueError):
                     if (
                         (not is_mock(f))
                         and callable(f)
@@ -817,8 +814,6 @@ def magic(
                         functions.add(f)
                         if getattr(thing, "__name__", None):
                             KNOWN_FUNCTION_LOCATIONS[f] = thing.__name__
-                except (TypeError, ValueError):
-                    pass
         else:
             raise InvalidArgument(f"Can't test non-module non-callable {thing!r}")
 
@@ -832,13 +827,9 @@ def magic(
 
     by_name = {}
     for f in functions:
-        try:
+        with contextlib.suppress(Exception):
             _get_params(f)
             by_name[_get_qualname(f, include_module=True)] = f
-        except Exception:
-            # usually inspect.signature on C code such as socket.inet_aton, sometimes
-            # e.g. Pandas 'CallableDynamicDoc' object has no attribute '__name__'
-            pass
     if not by_name:
         return (
             f"# Found no testable functions in\n"
@@ -1259,17 +1250,17 @@ def _make_binop_body(
     operands, b = (strategies.pop(p) for p in list(_get_params(func))[:2])
     if repr(operands) != repr(b):
         operands |= b
-    operands_name = func.__name__ + "_operands"
+    operands_name = f"{func.__name__}_operands"
 
     all_imports = set()
     parts = []
 
     def maker(
-        sub_property: str,
-        args: str,
-        body: str,
-        right: Optional[str] = None,
-    ) -> None:
+            sub_property: str,
+            args: str,
+            body: str,
+            right: Optional[str] = None,
+        ) -> None:
         if right is None:
             assertions = ""
         else:
@@ -1278,11 +1269,14 @@ def _make_binop_body(
         imports, body = _make_test_body(
             func,
             test_body=body,
-            ghost=sub_property + "_binary_operation",
+            ghost=f"{sub_property}_binary_operation",
             except_=except_,
             assertions=assertions,
             style=style,
-            given_strategies={**strategies, **{n: operands_name for n in args}},
+            given_strategies={
+                **strategies,
+                **{n: operands_name for n in args},
+            },
         )
         all_imports.update(imports)
         if style == "unittest":
@@ -1347,7 +1341,7 @@ def _make_binop_body(
         )
     if distributes_over:
         maker(
-            distributes_over.__name__ + "_distributes_over",
+            f"{distributes_over.__name__}_distributes_over",
             "abc",
             _write_call(
                 distributes_over,
@@ -1372,7 +1366,7 @@ def _make_binop_body(
         classdef = f"class TestBinaryOperation{func.__name__}(unittest.TestCase):\n    "
     return (
         all_imports,
-        classdef + f"{operands_name} = {operands_repr}\n" + "\n".join(parts),
+        f"{classdef}{operands_name} = {operands_repr}\n" + "\n".join(parts),
     )
 
 

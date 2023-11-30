@@ -219,7 +219,7 @@ def broadcastable_shapes(
         bound_name = "min_dims"
 
     # check for unsatisfiable min_side
-    if not all(min_side <= s for s in shape[::-1][:dims] if s != 1):
+    if any(min_side > s for s in shape[::-1][:dims] if s != 1):
         raise InvalidArgument(
             f"Given shape={shape}, there are no broadcast-compatible "
             f"shapes that satisfy: {bound_name}={dims} and min_side={min_side}"
@@ -449,7 +449,7 @@ def mutually_broadcastable_shapes(
         bound_name = "min_dims"
 
     # check for unsatisfiable min_side
-    if not all(min_side <= s for s in base_shape[::-1][:dims] if s != 1):
+    if any(min_side > s for s in base_shape[::-1][:dims] if s != 1):
         raise InvalidArgument(
             f"Given base_shape={base_shape}, there are no broadcast-compatible "
             f"shapes that satisfy: {bound_name}={dims} and min_side={min_side}"
@@ -550,9 +550,9 @@ class MutuallyBroadcastableShapesStrategy(st.SearchStrategy):
                     dim = name.strip("?")
                     dims[dim] = data.draw(self.side_strat)
                     if self.min_dims == 0 and not data.draw_bits(3):
-                        dims[dim + "?"] = None
+                        dims[f"{dim}?"] = None
                     else:
-                        dims[dim + "?"] = dims[dim]
+                        dims[f"{dim}?"] = dims[dim]
                 shapes[-1].append(dims[name])
         return tuple(tuple(s) for s in shapes[:-1]), tuple(shapes[-1])
 

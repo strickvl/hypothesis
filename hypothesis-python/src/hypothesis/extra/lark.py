@@ -117,14 +117,11 @@ class LarkStrategy(st.SearchStrategy):
             t.name: st.from_regex(t.pattern.to_regexp(), fullmatch=True)
             for t in terminals
         }
-        unknown_explicit = set(explicit) - get_terminal_names(
+        if unknown_explicit := set(explicit) - get_terminal_names(
             terminals, rules, ignore_names
-        )
-        if unknown_explicit:
+        ):
             raise InvalidArgument(
-                "The following arguments were passed as explicit_strategies, "
-                "but there is no such terminal production in this grammar: "
-                + repr(sorted(unknown_explicit))
+                f"The following arguments were passed as explicit_strategies, but there is no such terminal production in this grammar: {repr(sorted(unknown_explicit))}"
             )
         self.terminal_strategies.update(explicit)
 
@@ -188,7 +185,7 @@ class LarkStrategy(st.SearchStrategy):
 
 def check_explicit(name):
     def inner(value):
-        check_type(str, value, "value drawn from " + name)
+        check_type(str, value, f"value drawn from {name}")
         return value
 
     return inner
