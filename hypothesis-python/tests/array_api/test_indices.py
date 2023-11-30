@@ -102,7 +102,7 @@ def test_generate_valid_indices(xp, xps, allow_ellipsis, data):
     assert None not in _indexer  # i.e. np.newaxis
     # Check index is composed of valid objects
     for i in _indexer:
-        assert isinstance(i, int) or isinstance(i, slice) or i == Ellipsis
+        assert isinstance(i, (int, slice)) or i == Ellipsis
     # Check indexer does not flat index
     if Ellipsis in _indexer:
         assert sum(i == Ellipsis for i in _indexer) == 1

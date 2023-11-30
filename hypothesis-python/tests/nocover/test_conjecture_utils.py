@@ -37,10 +37,7 @@ def test_gives_the_correct_probabilities():
             assert probabilities[c] >= Fraction(counts[c], 2**16)
         except StopTest:
             pass
-        if 1 in data.forced_indices:
-            i += 256
-        else:
-            i += 1
+        i += 256 if 1 in data.forced_indices else 1
 
 
 # BUFFER_SIZE divided by (2bytes coin + 1byte element) gives the

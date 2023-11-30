@@ -343,11 +343,11 @@ def test_unbound_method():
 
 
 class MetaClass(type):
-    def __new__(metacls, name):
-        return type.__new__(metacls, name, (object,), {"name": name})
+    def __new__(cls, name):
+        return type.__new__(cls, name, (object,), {"name": name})
 
-    def __repr__(cls):
-        return f"[CUSTOM REPR FOR CLASS {cls.name}]"
+    def __repr__(self):
+        return f"[CUSTOM REPR FOR CLASS {self.name}]"
 
 
 ClassWithMeta = MetaClass("ClassWithMeta")
@@ -449,7 +449,7 @@ def test_collections_deque():
     cases = [
         (deque(), "deque([])"),
         (
-            deque(i for i in range(1000, 1020)),
+            deque(iter(range(1000, 1020))),
             "deque([1000,\n"
             "       1001,\n"
             "       1002,\n"
@@ -543,12 +543,11 @@ class BigList(list):
     def _repr_pretty_(self, printer, cycle):
         if cycle:
             return "[...]"
-        else:
-            with printer.group(open="[", close="]"):
-                with printer.indent(5):
-                    for v in self:
-                        printer.pretty(v)
-                        printer.breakable(",")
+        with printer.group(open="[", close="]"):
+            with printer.indent(5):
+                for v in self:
+                    printer.pretty(v)
+                    printer.breakable(",")
 
 
 def test_print_with_indent():

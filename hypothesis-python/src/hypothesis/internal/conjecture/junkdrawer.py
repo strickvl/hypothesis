@@ -17,9 +17,7 @@ import sys
 
 
 def array_or_list(code, contents):
-    if code == "O":
-        return list(contents)
-    return array.array(code, contents)
+    return list(contents) if code == "O" else array.array(code, contents)
 
 
 def replace_all(buffer, replacements):
@@ -183,10 +181,7 @@ class LazySequenceCopy:
     def __getitem__(self, i):
         i = self.__check_index(i)
         default = self.__values[i]
-        if self.__mask is None:
-            return default
-        else:
-            return self.__mask.get(i, default)
+        return default if self.__mask is None else self.__mask.get(i, default)
 
     def __setitem__(self, i, v):
         i = self.__check_index(i)

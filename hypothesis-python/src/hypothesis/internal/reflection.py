@@ -185,17 +185,15 @@ def convert_keyword_arguments(function, args, kwargs):
             else:
                 raise TypeError(f"No value provided for argument {arg_name!r}")
 
-    if kwargs and not (argspec.varkw or argspec.kwonlyargs):
+    if kwargs and not argspec.varkw and not argspec.kwonlyargs:
         if len(kwargs) > 1:
             raise TypeError(
-                "%s() got unexpected keyword arguments %s"
-                % (function.__name__, ", ".join(map(repr, kwargs)))
+                f'{function.__name__}() got unexpected keyword arguments {", ".join(map(repr, kwargs))}'
             )
-        else:
-            bad_kwarg = next(iter(kwargs))
-            raise TypeError(
-                f"{function.__name__}() got an unexpected keyword argument {bad_kwarg!r}"
-            )
+        bad_kwarg = next(iter(kwargs))
+        raise TypeError(
+            f"{function.__name__}() got an unexpected keyword argument {bad_kwarg!r}"
+        )
     return tuple(new_args), kwargs
 
 
@@ -209,7 +207,7 @@ def convert_positional_arguments(function, args, kwargs):
     new_kwargs = dict(argspec.kwonlydefaults or {})
     new_kwargs.update(kwargs)
     if not argspec.varkw:
-        for k in new_kwargs.keys():
+        for k in new_kwargs:
             if k not in argspec.args and k not in argspec.kwonlyargs:
                 raise TypeError(
                     f"{function.__name__}() got an unexpected keyword argument {k!r}"
@@ -242,15 +240,19 @@ def convert_positional_arguments(function, args, kwargs):
 def ast_arguments_matches_signature(args, sig):
     assert isinstance(args, ast.arguments)
     assert isinstance(sig, inspect.Signature)
-    expected = []
-    for node in getattr(args, "posonlyargs", ()):  # New in Python 3.8
-        expected.append((node.arg, inspect.Parameter.POSITIONAL_ONLY))
-    for node in args.args:
-        expected.append((node.arg, inspect.Parameter.POSITIONAL_OR_KEYWORD))
+    expected = [
+        (node.arg, inspect.Parameter.POSITIONAL_ONLY)
+        for node in getattr(args, "posonlyargs", ())
+    ]
+    expected.extend(
+        (node.arg, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        for node in args.args
+    )
     if args.vararg is not None:
         expected.append((args.vararg.arg, inspect.Parameter.VAR_POSITIONAL))
-    for node in args.kwonlyargs:
-        expected.append((node.arg, inspect.Parameter.KEYWORD_ONLY))
+    expected.extend(
+        (node.arg, inspect.Parameter.KEYWORD_ONLY) for node in args.kwonlyargs
+    )
     if args.kwarg is not None:
         expected.append((args.kwarg.arg, inspect.Parameter.VAR_KEYWORD))
     return expected == [(p.name, p.kind) for p in sig.parameters.values()]
@@ -441,9 +443,7 @@ def arg_string(f, args, kwargs, reorder=True):
         if p.name in kwargs and not p.kind.name.startswith("VAR_"):
             bits.append(f"{p.name}={nicerepr(kwargs.pop(p.name))}")
     if kwargs:
-        for a in sorted(kwargs):
-            bits.append(f"{a}={nicerepr(kwargs[a])}")
-
+        bits.extend(f"{a}={nicerepr(kwargs[a])}" for a in sorted(kwargs))
     return ", ".join(bits)
 
 
@@ -462,7 +462,7 @@ def source_exec_as_module(source):
         pass
 
     hexdigest = hashlib.sha384(source.encode()).hexdigest()
-    result = ModuleType("hypothesis_temporary_module_" + hexdigest)
+    result = ModuleType(f"hypothesis_temporary_module_{hexdigest}")
     assert isinstance(source, str)
     exec(source, result.__dict__)
     eval_cache[source] = result
@@ -517,8 +517,8 @@ def define_function_signature(name, docstring, argspec):
                 invocation_parts.append(a)
         if argspec.varargs:
             used_names.append(argspec.varargs)
-            parts.append("*" + argspec.varargs)
-            invocation_parts.append("*" + argspec.varargs)
+            parts.append(f"*{argspec.varargs}")
+            invocation_parts.append(f"*{argspec.varargs}")
         elif argspec.kwonlyargs:
             parts.append("*")
         for k in must_pass_as_kwargs:
@@ -532,8 +532,8 @@ def define_function_signature(name, docstring, argspec):
                 parts.append(k)
         if argspec.varkw:
             used_names.append(argspec.varkw)
-            parts.append("**" + argspec.varkw)
-            invocation_parts.append("**" + argspec.varkw)
+            parts.append(f"**{argspec.varkw}")
+            invocation_parts.append(f"**{argspec.varkw}")
 
         candidate_names = ["f"] + [f"f_{i}" for i in range(1, len(used_names) + 2)]
 
@@ -570,10 +570,7 @@ def accept({funcname}):
 
 
 def get_varargs(sig, kind=inspect.Parameter.VAR_POSITIONAL):
-    for p in sig.parameters.values():
-        if p.kind is kind:
-            return p
-    return None
+    return next((p for p in sig.parameters.values() if p.kind is kind), None)
 
 
 def define_function_signature_from_signature(name, docstring, signature):
@@ -616,7 +613,7 @@ def define_function_signature_from_signature(name, docstring, signature):
             else:
                 invocation_parts.append(p.name)
         if get_varargs(signature) is not None:
-            invocation_parts.append("*" + get_varargs(signature).name)
+            invocation_parts.append(f"*{get_varargs(signature).name}")
         for k in must_pass_as_kwargs:
             invocation_parts.append(f"{k}={k}")
         for p in signature.parameters.values():
@@ -624,7 +621,7 @@ def define_function_signature_from_signature(name, docstring, signature):
                 invocation_parts.append(f"{p.name}={p.name}")
         varkw = get_varargs(signature, kind=inspect.Parameter.VAR_KEYWORD)
         if varkw:
-            invocation_parts.append("**" + varkw.name)
+            invocation_parts.append(f"**{varkw.name}")
 
         candidate_names = ["f"] + [f"f_{i}" for i in range(1, len(used_names) + 2)]
 

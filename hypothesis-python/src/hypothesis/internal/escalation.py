@@ -37,10 +37,8 @@ def belongs_to(package):
 
     def accept(filepath):
         ftype = type(filepath)
-        try:
+        with contextlib.suppress(KeyError):
             return cache[ftype][filepath]
-        except KeyError:
-            pass
         try:
             Path(filepath).resolve().relative_to(root)
             result = True

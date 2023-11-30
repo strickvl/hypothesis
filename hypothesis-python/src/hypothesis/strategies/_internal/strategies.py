@@ -92,9 +92,9 @@ def recursive_property(name, default):
     and performance of parsing with derivatives." ACM SIGPLAN Notices 51.6
     (2016): 224-236.
     """
-    cache_key = "cached_" + name
-    calculation = "calc_" + name
-    force_key = "force_" + name
+    cache_key = f"cached_{name}"
+    calculation = f"calc_{name}"
+    force_key = f"force_{name}"
 
     def forced_value(target):
         try:
@@ -656,7 +656,7 @@ class OneOfStrategy(SearchStrategy):
         return data.draw(strategy)
 
     def __repr__(self):
-        return "one_of(%s)" % ", ".join(map(repr, self.original_strategies))
+        return f'one_of({", ".join(map(repr, self.original_strategies))})'
 
     def do_validate(self):
         for e in self.element_strategies:
@@ -664,14 +664,13 @@ class OneOfStrategy(SearchStrategy):
 
     @property
     def branches(self):
-        if not self.__in_branches:
-            try:
-                self.__in_branches = True
-                return self.element_strategies
-            finally:
-                self.__in_branches = False
-        else:
+        if self.__in_branches:
             return [self]
+        try:
+            self.__in_branches = True
+            return self.element_strategies
+        finally:
+            self.__in_branches = False
 
     def filter(self, condition):
         return FilteredStrategy(
@@ -862,7 +861,7 @@ class FilteredStrategy(SearchStrategy):
             self._cached_repr = "{!r}{}".format(
                 self.filtered_strategy,
                 "".join(
-                    ".filter(%s)" % get_pretty_function_description(cond)
+                    f".filter({get_pretty_function_description(cond)})"
                     for cond in self.flat_conditions
                 ),
             )
@@ -964,7 +963,7 @@ def check_strategy(arg, name=""):
     if not isinstance(arg, SearchStrategy):
         hint = ""
         if isinstance(arg, (list, tuple)):
-            hint = ", such as st.sampled_from({}),".format(name or "...")
+            hint = f', such as st.sampled_from({name or "..."}),'
         if name:
             name += "="
         raise InvalidArgument(

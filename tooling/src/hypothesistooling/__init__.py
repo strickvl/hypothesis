@@ -151,8 +151,7 @@ def changed_files_from_master():
     command = ["git", "diff", "--name-only", "HEAD", "master"]
     diff_output = subprocess.check_output(command).decode("ascii")
     for line in diff_output.splitlines():
-        filepath = line.strip()
-        if filepath:
+        if filepath := line.strip():
             files.add(filepath)
     return files
 

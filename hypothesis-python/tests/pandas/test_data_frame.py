@@ -120,15 +120,8 @@ def column_strategy(draw):
     name = draw(st.none() | st.text())
     dtype = draw(npst.scalar_dtypes().filter(supported_by_pandas))
     pass_dtype = not draw(st.booleans())
-    if pass_dtype:
-        pass_elements = not draw(st.booleans())
-    else:
-        pass_elements = True
-    if pass_elements:
-        elements = npst.from_dtype(dtype)
-    else:
-        elements = None
-
+    pass_elements = not draw(st.booleans()) if pass_dtype else True
+    elements = npst.from_dtype(dtype) if pass_elements else None
     unique = draw(st.booleans())
     fill = st.nothing() if draw(st.booleans()) else None
 
@@ -182,9 +175,8 @@ def test_arbitrary_data_frames(data):
             assert c.name == n
 
     for i, c in enumerate(columns):
-        column_name = data_frame_columns[i]
-        values = df[column_name]
         if c.unique:
+            values = df[data_frame_columns[i]]
             assert len(set(values)) == len(values)
 
 

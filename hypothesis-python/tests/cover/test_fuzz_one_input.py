@@ -46,7 +46,7 @@ def test_fuzz_one_input(buffer_type):
     # Before running fuzz_one_input, there's nothing in `db`, and so the test passes
     # (because example generation is disabled by the custom settings)
     test()
-    assert len(seen) == 0
+    assert not seen
 
     # If we run a lot of random bytestrings through fuzz_one_input, we'll eventually
     # find a failing example.

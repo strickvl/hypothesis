@@ -280,10 +280,7 @@ def _category_key(exclude, include):
     ('Me', 'Lu', 'Cs')
     """
     cs = categories()
-    if include is None:
-        include = set(cs)
-    else:
-        include = set(include)
+    include = set(cs) if include is None else set(include)
     exclude = set(exclude or ())
     assert include.issubset(cs)
     assert exclude.issubset(cs)
@@ -358,10 +355,11 @@ def query(
     except KeyError:
         pass
     base = _query_for_key(catkey)
-    result = []
-    for u, v in base:
-        if v >= min_codepoint and u <= max_codepoint:
-            result.append((max(u, min_codepoint), min(v, max_codepoint)))
+    result = [
+        (max(u, min_codepoint), min(v, max_codepoint))
+        for u, v in base
+        if v >= min_codepoint and u <= max_codepoint
+    ]
     result = tuple(result)
     result = _union_intervals(result, character_intervals)
     result = _subtract_intervals(result, exclude_intervals)

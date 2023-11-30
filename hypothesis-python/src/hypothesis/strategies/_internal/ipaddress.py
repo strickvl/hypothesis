@@ -105,9 +105,7 @@ def ip_addresses(
         ).flatmap(lambda network: ip_addresses(network=network))
         if v == 4:
             return four
-        if v == 6:
-            return six
-        return four | six
+        return six if v == 6 else four | six
     if isinstance(network, str):
         network = ip_network(network)
     check_type((IPv4Network, IPv6Network), network, "network")

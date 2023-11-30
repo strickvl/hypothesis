@@ -231,7 +231,7 @@ def test_does_not_print_on_success():
         test_is_an_int()
     out = out.getvalue()
     lines = [l.strip() for l in out.split("\n")]
-    assert all(not l for l in lines), lines
+    assert not any(lines), lines
 
 
 @given(sampled_from([1]))
@@ -248,7 +248,7 @@ def test_list_is_sorted(xs):
 @fails
 @given(floats(1.0, 2.0))
 def test_is_an_endpoint(x):
-    assert x == 1.0 or x == 2.0
+    assert x in [1.0, 2.0]
 
 
 def test_breaks_bounds():

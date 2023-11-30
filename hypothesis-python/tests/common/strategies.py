@@ -34,12 +34,11 @@ class HardToShrink(SearchStrategy):
             return True
         ls = self.__last
         if ls is None:
-            if all(x):
-                self.__last = x
-                self.accepted.add(x)
-                return True
-            else:
+            if not all(x):
                 return False
+            self.__last = x
+            self.accepted.add(x)
+            return True
         diffs = [i for i in range(len(x)) if x[i] != ls[i]]
         if len(diffs) == 1:
             i = diffs[0]

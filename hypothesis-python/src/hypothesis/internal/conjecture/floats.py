@@ -88,10 +88,7 @@ def exponent_key(e):
     if e == MAX_EXPONENT:
         return float("inf")
     unbiased = e - BIAS
-    if unbiased < 0:
-        return 10000 - unbiased
-    else:
-        return unbiased
+    return 10000 - unbiased if unbiased < 0 else unbiased
 
 
 ENCODING_TABLE = array("H", sorted(range(MAX_EXPONENT + 1), key=exponent_key))
@@ -180,8 +177,7 @@ def update_mantissa(unbiased_exponent, mantissa):
 
 def lex_to_float(i):
     assert i.bit_length() <= 64
-    has_fractional_part = i >> 63
-    if has_fractional_part:
+    if has_fractional_part := i >> 63:
         exponent = (i >> 52) & ((1 << 11) - 1)
         exponent = decode_exponent(exponent)
         mantissa = i & MANTISSA_MASK
@@ -219,9 +215,7 @@ def is_simple(f):
         i = int(f)
     except (ValueError, OverflowError):
         return False
-    if i != f:
-        return False
-    return i.bit_length() <= 56
+    return False if i != f else i.bit_length() <= 56
 
 
 def draw_float(data):

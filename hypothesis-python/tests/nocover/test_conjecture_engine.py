@@ -34,7 +34,7 @@ def test_saves_data_while_shrinking(monkeypatch):
     key = b"hi there"
     n = 5
     db = InMemoryExampleDatabase()
-    assert list(db.fetch(key)) == []
+    assert not list(db.fetch(key))
     seen = set()
 
     monkeypatch.setattr(

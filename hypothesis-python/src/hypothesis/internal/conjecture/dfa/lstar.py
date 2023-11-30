@@ -286,9 +286,7 @@ class LStar:
             for a in alphabet:
 
                 def replace(b):
-                    if a == b:
-                        return target
-                    return bytes(b if c == a else c for c in target)
+                    return target if a == b else bytes(b if c == a else c for c in target)
 
                 self.normalizer.distinguish(a, lambda x: self.member(replace(x)))
                 target = replace(self.normalizer.normalize(a))
@@ -484,9 +482,7 @@ class IntegerNormalizer:
 
         def can_lower(k):
             new_canon = value - k
-            if new_canon <= canonical:
-                return False
-            return test(new_canon) == value_test
+            return False if new_canon <= canonical else test(new_canon) == value_test
 
         new_canon = value - find_integer(can_lower)
 

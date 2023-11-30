@@ -82,7 +82,7 @@ def test_can_delete_a_key_that_is_not_present(exampledatabase):
 
 
 def test_can_fetch_a_key_that_is_not_present(exampledatabase):
-    assert list(exampledatabase.fetch(b"foo")) == []
+    assert not list(exampledatabase.fetch(b"foo"))
 
 
 def test_saving_a_key_twice_fetches_it_once(exampledatabase):
@@ -140,7 +140,7 @@ def test_readonly_db_is_not_writable():
     wrapped.move(b"key", b"key2", b"value2")
     wrapped.save(b"key", b"value3")
     assert set(wrapped.fetch(b"key")) == {b"value", b"value2"}
-    assert set(wrapped.fetch(b"key2")) == set()
+    assert not set(wrapped.fetch(b"key2"))
 
 
 def test_multiplexed_dbs_read_and_write_all():
@@ -152,11 +152,11 @@ def test_multiplexed_dbs_read_and_write_all():
     multi.save(b"c", b"cc")
     multi.move(b"a", b"b", b"aa")
     for db in (a, b, multi):
-        assert set(db.fetch(b"a")) == set()
+        assert not set(db.fetch(b"a"))
         assert set(db.fetch(b"c")) == {b"cc"}
     got = list(multi.fetch(b"b"))
     assert len(got) == 2
     assert set(got) == {b"aa", b"bb"}
     multi.delete(b"c", b"cc")
     for db in (a, b, multi):
-        assert set(db.fetch(b"c")) == set()
+        assert not set(db.fetch(b"c"))

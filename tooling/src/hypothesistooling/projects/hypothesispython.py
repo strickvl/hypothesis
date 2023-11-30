@@ -72,7 +72,7 @@ def build_docs(builder="html"):
         "-b",
         builder,
         "docs",
-        "docs/_build/" + builder,
+        f"docs/_build/{builder}",
         cwd=HYPOTHESIS_PYTHON,
     )
 
@@ -201,10 +201,10 @@ def upload_distribution():
         "https://api.github.com/repos/HypothesisWorks/hypothesis/releases",
         json={
             "tag_name": tag_name(),
-            "name": "Hypothesis for Python - version " + current_version(),
+            "name": f"Hypothesis for Python - version {current_version()}",
             "body": changelog_body,
         },
-        timeout=120,  # seconds
+        timeout=120,
         auth=("Zac-HD", os.environ["GH_TOKEN"]),
     ).raise_for_status()
 

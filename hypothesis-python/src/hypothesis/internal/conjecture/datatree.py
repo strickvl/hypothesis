@@ -125,9 +125,7 @@ class TreeNode:
 
     @property
     def forced(self):
-        if not self.__forced:
-            return EMPTY
-        return self.__forced
+        return EMPTY if not self.__forced else self.__forced
 
     def mark_forced(self, i):
         """Note that the value at index ``i`` was forced."""
@@ -395,21 +393,17 @@ class TreeRecordingObserver(DataObserver):
 
         new_transition = Conclusion(status, interesting_origin)
 
-        if node.transition is not None and node.transition != new_transition:
-            # As an, I'm afraid, horrible bodge, we deliberately ignore flakiness
-            # where tests go from interesting to valid, because it's much easier
-            # to produce good error messages for these further up the stack.
-            if isinstance(node.transition, Conclusion) and (
+        if node.transition is None or node.transition == new_transition:
+            node.transition = new_transition
+
+        elif isinstance(node.transition, Conclusion) and (
                 node.transition.status != Status.INTERESTING
                 or new_transition.status != Status.VALID
             ):
-                raise Flaky(
-                    f"Inconsistent test results! Test case was {node.transition!r} "
-                    f"on first run but {new_transition!r} on second"
-                )
-        else:
-            node.transition = new_transition
-
+            raise Flaky(
+                f"Inconsistent test results! Test case was {node.transition!r} "
+                f"on first run but {new_transition!r} on second"
+            )
         assert node is self.__trail[-1]
         node.check_exhausted()
         assert len(node.values) > 0 or node.check_exhausted()

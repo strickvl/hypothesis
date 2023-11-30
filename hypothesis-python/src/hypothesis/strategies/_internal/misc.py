@@ -41,7 +41,7 @@ class JustStrategy(SampledFromStrategy):
             for name, f in self._transformations
         )
         if self.value is None:
-            return "none()" + suffix
+            return f"none(){suffix}"
         return f"just({get_pretty_function_description(self.value)}){suffix}"
 
     def calc_is_cacheable(self, recur):

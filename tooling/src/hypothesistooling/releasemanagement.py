@@ -120,13 +120,7 @@ def parse_release_file_contents(release_contents, filename):
     release_lines = [l.rstrip() for l in release_contents.split("\n")]
 
     m = RELEASE_TYPE.match(release_lines[0])
-    if m is not None:
-        release_type = m.group(1)
-        if release_type not in VALID_RELEASE_TYPES:
-            raise ValueError(f"Unrecognised release type {release_type!r}")
-        del release_lines[0]
-        release_contents = "\n".join(release_lines).strip()
-    else:
+    if m is None:
         raise ValueError(
             f"{filename} does not start by specifying release type. The first "
             "line of the file should be RELEASE_TYPE: followed by one of "
@@ -135,6 +129,11 @@ def parse_release_file_contents(release_contents, filename):
             f"first line was {release_lines[0]!r}"
         )
 
+    release_type = m.group(1)
+    if release_type not in VALID_RELEASE_TYPES:
+        raise ValueError(f"Unrecognised release type {release_type!r}")
+    del release_lines[0]
+    release_contents = "\n".join(release_lines).strip()
     return release_type, release_contents
 
 

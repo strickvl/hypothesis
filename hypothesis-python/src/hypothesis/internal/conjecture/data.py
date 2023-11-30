@@ -29,9 +29,7 @@ class ExtraInformation:
     be added to the final ``ConjectureResult``."""
 
     def __repr__(self):
-        return "ExtraInformation({})".format(
-            ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items()),
-        )
+        return f'ExtraInformation({", ".join(f"{k}={v!r}" for k, v in self.__dict__.items())})'
 
     def has_information(self):
         return bool(self.__dict__)
@@ -125,9 +123,7 @@ class Example:
     @property
     def parent(self):
         """The index of the example that this one is nested directly within."""
-        if self.index == 0:
-            return None
-        return self.owner.parentage[self.index]
+        return None if self.index == 0 else self.owner.parentage[self.index]
 
     @property
     def start(self):
@@ -256,7 +252,7 @@ def calculated_example_property(cls):
     This has the slightly weird result that we are defining nested
     classes which get turned into properties."""
     name = cls.__name__
-    cache_name = "__" + name
+    cache_name = f"__{name}"
 
     def lazy_calculate(self):
         result = getattr(self, cache_name, None)
@@ -533,10 +529,7 @@ class Blocks:
         """Equivalent to self[i].start."""
         i = self._check_index(i)
 
-        if i == 0:
-            return 0
-        else:
-            return self.end(i - 1)
+        return 0 if i == 0 else self.end(i - 1)
 
     def end(self, i):
         """Equivalent to self[i].end."""
@@ -657,7 +650,7 @@ class Blocks:
                 parts.append("...")
             else:
                 parts.append(repr(b))
-        return "Block([{}])".format(", ".join(parts))
+        return f'Block([{", ".join(parts)}])'
 
 
 class _Overrun:
@@ -872,12 +865,11 @@ class ConjectureData:
         try:
             if not at_top_level:
                 return strategy.do_draw(self)
-            else:
-                strategy.validate()
-                try:
-                    return strategy.do_draw(self)
-                finally:
-                    self.draw_times.append(time.perf_counter() - start_time)
+            strategy.validate()
+            try:
+                return strategy.do_draw(self)
+            finally:
+                self.draw_times.append(time.perf_counter() - start_time)
         finally:
             self.stop_example()
 

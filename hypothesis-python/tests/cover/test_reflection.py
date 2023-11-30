@@ -176,7 +176,7 @@ class Foo:
     def bar(cls):
         pass
 
-    def baz(cls):
+    def baz(self):
         pass
 
     def __repr__(self):

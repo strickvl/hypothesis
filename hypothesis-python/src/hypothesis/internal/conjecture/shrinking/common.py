@@ -128,9 +128,7 @@ class Shrinker:
         """Returns True if make_immutable(value) == self.current after calling
         self.incorporate(value)."""
         value = self.make_immutable(value)
-        if value == self.current:
-            return True
-        return self.incorporate(value)
+        return True if value == self.current else self.incorporate(value)
 
     def make_immutable(self, value):
         """Convert value into an immutable (and hashable) representation of

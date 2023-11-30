@@ -101,7 +101,7 @@ def test_closes_interval_on_error_in_strategy():
     with pytest.raises(ValueError):
         x.draw(BoomStrategy())
     x.freeze()
-    assert not any(eg.end is None for eg in x.examples)
+    assert all(eg.end is not None for eg in x.examples)
 
 
 class BigStrategy(SearchStrategy):
@@ -114,7 +114,7 @@ def test_does_not_double_freeze_in_interval_close():
     with pytest.raises(StopTest):
         x.draw(BigStrategy())
     assert x.frozen
-    assert not any(eg.end is None for eg in x.examples)
+    assert all(eg.end is not None for eg in x.examples)
 
 
 def test_triviality():
@@ -452,13 +452,13 @@ def test_example_equality():
     examples = list(d.examples)
     for ex1, ex2 in itertools.combinations(examples, 2):
         assert ex1 != ex2
-        assert not (ex1 == ex2)
+        assert ex1 != ex2
 
     for ex in examples:
         assert ex == ex
-        not (ex != ex)
+        ex == ex
 
-        assert not (ex == "hello")
+        assert ex != "hello"
         assert ex != "hello"
 
 

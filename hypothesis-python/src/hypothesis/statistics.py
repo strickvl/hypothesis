@@ -36,8 +36,12 @@ def describe_targets(best_targets):
         return [f"Highest target score: {score:g}  (label={label!r})"]
     else:
         lines = ["Highest target scores:"]
-        for label, score in sorted(best_targets.items(), key=lambda x: x[::-1]):
-            lines.append(f"{score:>16g}  (label={label!r})")
+        lines.extend(
+            f"{score:>16g}  (label={label!r})"
+            for label, score in sorted(
+                best_targets.items(), key=lambda x: x[::-1]
+            )
+        )
         return lines
 
 
@@ -57,7 +61,7 @@ def describe_statistics(stats_dict):
     lines = [stats_dict["nodeid"] + ":\n"] if "nodeid" in stats_dict else []
     prev_failures = 0
     for phase in ["reuse", "generate", "shrink"]:
-        d = stats_dict.get(phase + "-phase", {})
+        d = stats_dict.get(f"{phase}-phase", {})
         # Basic information we report for every phase
         cases = d.get("test-cases", [])
         if not cases:
@@ -82,20 +86,15 @@ def describe_statistics(stats_dict):
             f"    - {statuses['valid']} passing examples, {statuses['interesting']} "
             f"failing examples, {statuses['invalid'] + statuses['overrun']} invalid examples"
         )
-        # If we've found new distinct failures in this phase, report them
-        distinct_failures = d["distinct-failures"] - prev_failures
-        if distinct_failures:
+        if distinct_failures := d["distinct-failures"] - prev_failures:
             plural = distinct_failures > 1
             lines.append(
-                "    - Found {}{} distinct error{} in this phase".format(
-                    distinct_failures, " more" * bool(prev_failures), "s" * plural
-                )
+                f'    - Found {distinct_failures}{" more" * bool(prev_failures)} distinct error{"s" * plural} in this phase'
             )
         prev_failures = d["distinct-failures"]
         # Report events during the generate phase, if there were any
         if phase == "generate":
-            events = Counter(sum((t["events"] for t in cases), []))
-            if events:
+            if events := Counter(sum((t["events"] for t in cases), [])):
                 lines.append("    - Events:")
                 lines += [
                     f"      * {100 * v / len(cases):.2f}%, {k}"
@@ -104,15 +103,12 @@ def describe_statistics(stats_dict):
         # Some additional details on the shrinking phase
         if phase == "shrink":
             lines.append(
-                "    - Tried {} shrinks of which {} were successful".format(
-                    len(cases), d["shrinks-successful"]
-                )
+                f'    - Tried {len(cases)} shrinks of which {d["shrinks-successful"]} were successful'
             )
         lines.append("")
 
-    target_lines = describe_targets(stats_dict.get("targets", {}))
-    if target_lines:
-        lines.append("  - " + target_lines[0])
-        lines.extend("    " + l for l in target_lines[1:])
+    if target_lines := describe_targets(stats_dict.get("targets", {})):
+        lines.append(f"  - {target_lines[0]}")
+        lines.extend(f"    {l}" for l in target_lines[1:])
     lines.append("  - Stopped because " + stats_dict["stopped-because"])
     return "\n".join(lines)

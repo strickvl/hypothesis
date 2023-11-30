@@ -120,7 +120,7 @@ def validate_deprecation():
             yield
     finally:
         warnings.simplefilter("error", HypothesisDeprecationWarning)
-        if not any(e.category == HypothesisDeprecationWarning for e in w):
+        if all(e.category != HypothesisDeprecationWarning for e in w):
             raise NotDeprecated(
                 f"Expected a deprecation warning but got {[e.category for e in w]!r}"
             )
@@ -163,7 +163,7 @@ def counts_calls(func):
 
 
 def assert_output_contains_failure(output, test, **kwargs):
-    assert test.__name__ + "(" in output
+    assert f"{test.__name__}(" in output
     for k, v in kwargs.items():
         assert f"{k}={v!r}" in output
 

@@ -531,6 +531,7 @@ class Shrinker:
         passes = list(map(self.shrink_pass, passes))
 
         any_ran = True
+        max_failures = 20
         while any_ran:
             any_ran = False
 
@@ -561,7 +562,6 @@ class Shrinker:
                 # max_failures times in a row. This implicitly boosts shrink
                 # passes that are more likely to work.
                 failures = 0
-                max_failures = 20
                 while failures < max_failures:
                     # We don't allow more than max_stall consecutive failures
                     # to shrink, but this means that if we're unlucky and the
@@ -596,18 +596,15 @@ class Shrinker:
                         break
                     any_ran = True
 
-                    # Don't count steps that didn't actually try to do
-                    # anything as failures. Otherwise, this call is a failure
-                    # if it failed to make any changes to the shrink target.
                     if initial_calls != self.calls:
-                        if prev is not self.shrink_target:
-                            failures = 0
-                        else:
+                        if prev is self.shrink_target:
                             max_calls_per_failing_step = max(
                                 max_calls_per_failing_step, self.calls - initial_calls
                             )
                             failures += 1
 
+                        else:
+                            failures = 0
                 # We reorder the shrink passes so that on our next run through
                 # we try good ones first. The rule is that shrink passes that
                 # did nothing useful are the worst, shrink passes that reduced

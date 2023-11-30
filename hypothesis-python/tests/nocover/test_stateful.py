@@ -38,10 +38,9 @@ class BalancedTrees(RuleBasedStateMachine):
     def test_is_balanced(self, tree):
         if isinstance(tree, Leaf):
             return
-        else:
-            assert abs(self.size(tree.left) - self.size(tree.right)) <= 1
-            self.test_is_balanced(tree.left)
-            self.test_is_balanced(tree.right)
+        assert abs(self.size(tree.left) - self.size(tree.right)) <= 1
+        self.test_is_balanced(tree.left)
+        self.test_is_balanced(tree.right)
 
     def size(self, tree):
         if isinstance(tree, Leaf):
@@ -52,10 +51,7 @@ class BalancedTrees(RuleBasedStateMachine):
 
 class DepthCharge:
     def __init__(self, value):
-        if value is None:
-            self.depth = 0
-        else:
-            self.depth = value.depth + 1
+        self.depth = 0 if value is None else value.depth + 1
 
 
 class DepthMachine(RuleBasedStateMachine):
@@ -84,10 +80,7 @@ class RoseTreeStateMachine(RuleBasedStateMachine):
     @rule(source=nodes)
     def shallow(self, source):
         def d(ls):
-            if not ls:
-                return 0
-            else:
-                return 1 + max(map(d, ls))
+            return 0 if not ls else 1 + max(map(d, ls))
 
         assert d(source) <= 5
 

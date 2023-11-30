@@ -53,8 +53,7 @@ def run_length_decode(seq):
     it."""
     result = []
     for s, i in seq:
-        for _ in range(i):
-            result.append(s)
+        result.extend(s for _ in range(i))
     return result
 
 

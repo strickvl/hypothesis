@@ -70,10 +70,7 @@ def binary_search(ls, v):
 
 def is_sorted(ls):
     """Is this list sorted?"""
-    for i in range(len(ls) - 1):
-        if ls[i] > ls[i + 1]:
-            return False
-    return True
+    return all(ls[i] <= ls[i + 1] for i in range(len(ls) - 1))
 
 
 Values = st.integers()

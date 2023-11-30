@@ -20,10 +20,7 @@ from hypothesis.strategies._internal.regex import base_regex_strategy
 def charset(draw):
     negated = draw(st.booleans())
     chars = draw(st.text(string.ascii_letters + string.digits, min_size=1))
-    if negated:
-        return f"[^{chars}]"
-    else:
-        return f"[{chars}]"
+    return f"[^{chars}]" if negated else f"[{chars}]"
 
 
 COMBINED_MATCHER = re.compile("[?+*]{2}")
@@ -37,9 +34,9 @@ def conservative_regex(draw):
             st.sampled_from([re.escape(c) for c in string.printable]),
             charset(),
             CONSERVATIVE_REGEX.map(lambda s: f"({s})"),
-            CONSERVATIVE_REGEX.map(lambda s: s + "+"),
-            CONSERVATIVE_REGEX.map(lambda s: s + "?"),
-            CONSERVATIVE_REGEX.map(lambda s: s + "*"),
+            CONSERVATIVE_REGEX.map(lambda s: f"{s}+"),
+            CONSERVATIVE_REGEX.map(lambda s: f"{s}?"),
+            CONSERVATIVE_REGEX.map(lambda s: f"{s}*"),
             st.lists(CONSERVATIVE_REGEX, min_size=1, max_size=3).map("|".join),
             st.lists(CONSERVATIVE_REGEX, min_size=1, max_size=3).map("".join),
         )

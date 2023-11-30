@@ -118,31 +118,30 @@ def update_code_location(code, newfile, newlineno):
         # added to facilitate future-proof code.  See BPO-37032 for details.
         return code.replace(co_filename=newfile, co_firstlineno=newlineno)
 
-    else:  # pragma: no cover
-        # This field order is accurate for 3.5 - 3.7, but not 3.8 when a new field
-        # was added for positional-only arguments.  However it also added a .replace()
-        # method that we use instead of field indices, so they're fine as-is.
-        CODE_FIELD_ORDER = [
-            "co_argcount",
-            "co_kwonlyargcount",
-            "co_nlocals",
-            "co_stacksize",
-            "co_flags",
-            "co_code",
-            "co_consts",
-            "co_names",
-            "co_varnames",
-            "co_filename",
-            "co_name",
-            "co_firstlineno",
-            "co_lnotab",
-            "co_freevars",
-            "co_cellvars",
-        ]
-        unpacked = [getattr(code, name) for name in CODE_FIELD_ORDER]
-        unpacked[CODE_FIELD_ORDER.index("co_filename")] = newfile
-        unpacked[CODE_FIELD_ORDER.index("co_firstlineno")] = newlineno
-        return type(code)(*unpacked)
+    # This field order is accurate for 3.5 - 3.7, but not 3.8 when a new field
+    # was added for positional-only arguments.  However it also added a .replace()
+    # method that we use instead of field indices, so they're fine as-is.
+    CODE_FIELD_ORDER = [
+        "co_argcount",
+        "co_kwonlyargcount",
+        "co_nlocals",
+        "co_stacksize",
+        "co_flags",
+        "co_code",
+        "co_consts",
+        "co_names",
+        "co_varnames",
+        "co_filename",
+        "co_name",
+        "co_firstlineno",
+        "co_lnotab",
+        "co_freevars",
+        "co_cellvars",
+    ]
+    unpacked = [getattr(code, name) for name in CODE_FIELD_ORDER]
+    unpacked[CODE_FIELD_ORDER.index("co_filename")] = newfile
+    unpacked[CODE_FIELD_ORDER.index("co_firstlineno")] = newlineno
+    return type(code)(*unpacked)
 
 
 # Under Python 2, math.floor and math.ceil returned floats, which cannot
@@ -153,25 +152,20 @@ def update_code_location(code, newfile, newlineno):
 # See issue #1667, Numpy issue 9068.
 def floor(x):
     y = int(x)
-    if y != x and x < 0:
-        return y - 1
-    return y
+    return y - 1 if y != x and x < 0 else y
 
 
 def ceil(x):
     y = int(x)
-    if y != x and x > 0:
-        return y + 1
-    return y
+    return y + 1 if y != x and x > 0 else y
 
 
 def bad_django_TestCase(runner):
     if runner is None or "django.test" not in sys.modules:
         return False
-    else:  # pragma: no cover
-        if not isinstance(runner, sys.modules["django.test"].TransactionTestCase):
-            return False
+    if not isinstance(runner, sys.modules["django.test"].TransactionTestCase):
+        return False
 
-        from hypothesis.extra.django._impl import HypothesisTestCase
+    from hypothesis.extra.django._impl import HypothesisTestCase
 
-        return not isinstance(runner, HypothesisTestCase)
+    return not isinstance(runner, HypothesisTestCase)

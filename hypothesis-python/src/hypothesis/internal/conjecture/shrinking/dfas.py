@@ -204,7 +204,7 @@ def learn_a_new_dfa(runner, u, v, predicate):
 
     assert (len(prefix), len(v) - len(suffix)) in shrinker.matching_regions(new_dfa)
 
-    name = "tmp-dfa-" + repr(new_dfa)
+    name = f"tmp-dfa-{repr(new_dfa)}"
 
     shrinker.extra_dfas[name] = new_dfa
 
@@ -323,7 +323,7 @@ def normalize(
             runner, previous.buffer, current.buffer, shrinking_predicate
         )
 
-        name = base_name + "-" + hashlib.sha256(repr(new_dfa).encode()).hexdigest()[:10]
+        name = f"{base_name}-{hashlib.sha256(repr(new_dfa).encode()).hexdigest()[:10]}"
 
         # If there is a name collision this DFA should already be being
         # used for shrinking, so we should have already been able to shrink

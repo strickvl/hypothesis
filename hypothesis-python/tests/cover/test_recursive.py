@@ -19,10 +19,7 @@ from tests.common.debug import find_any, minimal
 @given(st.recursive(st.booleans(), st.lists, max_leaves=10))
 def test_respects_leaf_limit(xs):
     def flatten(x):
-        if isinstance(x, list):
-            return sum(map(flatten, x), [])
-        else:
-            return [x]
+        return sum(map(flatten, x), []) if isinstance(x, list) else [x]
 
     assert len(flatten(xs)) <= 10
 
